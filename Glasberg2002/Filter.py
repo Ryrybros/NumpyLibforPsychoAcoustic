@@ -1,6 +1,5 @@
 
-from jsonHandler import jsonHandler
-
+from filetools.jsonHandler import jsonHandler
 import numpy as np
 
 
@@ -10,6 +9,6 @@ def FIR():
     tfLinear = 10.^(data["OuterMiddleEar1997"]["tfOuterMiddle"]/10)
     print(tfLinear)
 
-
 FIR()
+
 

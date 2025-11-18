@@ -18,9 +18,13 @@ class jsonHandler:
             print("Failed to save json file")
 
 #test
+
+print("In module products __package__, __name__ == ", __package__, __name__)
+
 if __name__ == '__main__':
     data = jsonHandler.readJson("filetools/data.json")
     assert(data["OuterMiddleEar1997"]["fOuter"][0] == 20)
+    data["OuterMiddleEar1997"]["fOuter"][0] = 42
     jsonHandler.writeJson("filetools/testjsonHandler.json", data)
             
         
