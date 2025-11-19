@@ -1,7 +1,23 @@
 import numpy as np
 from filetools import jsonHandler
+from MathOperators import Interpolator
 
 Json = jsonHandler.jsonHandler
+Interp = Interpolator.Interpolator
+
+class ReturnedData:
+
+    def __init__(self):
+        #OuterMiddleEar
+        self.tfOuterMiddle = None
+        self.tfOuter = None
+        self.tfMiddle = None
+        self.fOuter = None
+        self.fMiddle = None
+
+#SpecLoud
+        self.tQ = None
+
 class GlasbergComputer:
 
     def __init__(self):
@@ -10,37 +26,77 @@ class GlasbergComputer:
     def OuterMiddle(self,fVec : np.array, model : str, free : bool ):
 
         # transfer function of the outer ear
-        dataModel = f"OuterMiddleEar{model}"
+        try:
+            dataModel = f"OuterMiddleEar{model}"
+        except:
+            print("Wrong model parameter , model 1997 was chosen by default.")
+            dataModel = "OuterMiddleEar1997"
+        if(free):
+            regim = "Free"
+        else:
+            regim = "Diffuse"
+
         fOuter = np.array(self.data[dataModel]["fOuter"])
+        tfOuter = np.array(self.data[dataModel][f"tfOuter{regim}"])
+
+        tfOuterInterp = Interp.interp1(fVec,fOuter, tfOuter) #None Pchip interpolation, this is linear, pchip is cubic
+
+        fMiddle = np.array(self.data[dataModel]["fMiddle"])
+        tfMiddle= np.array(self.data[dataModel]["tfMiddle"])
+        # print(tfMiddle)
+
+        tfMiddleInterp = Interp.interp1(fVec,fMiddle, tfMiddle) #None Pchip interpolation, this is linear, pchip is cubic
         
 
-    #     % values of ANSI S3.4-2007
-    #     if kv.fieldType == 'free' % free field
-    #         tfOuter = [0 0 0 0 0 0 0 0 0.1 0.3 0.5 0.9 1.4 1.6 1.7 2.5 2.7 2.6 2.6 3.2 5.2 ...
-    #             6.6 12 16.8 15.3 15.2 14.2 10.7 7.1 6.4 1.8 -0.9 -1.6 1.9 4.9 2 -2 2.5 2.5];
+        dat = ReturnedData()
 
-    #     elseif kv.fieldType == 'diffuse' % diffuse field
-    #         tfOuter = [0 0 0 0 0 0 0 0 0.1 0.3 0.4 0.5 1 1.6 1.7 2.2 2.7 2.9 3.8 5.3 6.8 7.2 ...
-    #             10.2 14.9 14.5 14.4 12.7 10.8 8.9 8.7 8.5 6.2 5 4.5 4 3.3 2.6 2 2];
-    #     else
-    #         error('Wrong parameter for fieldType. Please use "free" or "diffuse".')
-    #     end
+        dat.tfOuterMiddle = tfMiddleInterp + tfOuterInterp
+        dat.tfOuter = tfOuter
+        dat.tfMiddle
+        dat.fOuter
+        dat.fMiddle
+        
+        return dat
+    
+    def SpecLoudness(self , fVec : np.array):
 
-    #     tfOuterInterp = interp1(fOuter, tfOuter, kv.fVec, 'pchip');
+        dat = ReturnedData()
+        fRef = self.data["fRef"]
+        # print(fRef)
+        tQ = self.data["tQ"]
 
-    #     % transfer function of the middle ear
-    #     fMiddle = [20 25 31.5 40 50 63 80 100 125 160 200 250 315 400 500 630 750 ...
-    #         800 1000 1250 1500 1600 2000 2500 3000 3150 4000 5000 6000 6300 8000 ...
-    #         9000 10000 11200 12500 14000 15000 16000 18000 20000];
+        dat.tQ = Interp.interp1(fVec, fRef,tQ)
+        dat.tQ500 = tQ[11]
+        
+        dat.g = dat.tQ500-dat.tQ    # low level gain in cochlea amplifier
 
-    #     % revised data 2006
-    #     tfMiddle = -[39.6 32 25.85 21.4 18.5 15.9 14.1 12.4 11 9.6 8.3 7.4 6.2 4.8 ...
-    #         3.8 3.3 2.9 2.6 2.6 3.2 4.5 5.5 8.5 10.4 7.3 7 6.6 7 9.2 10.2 12.2 ...
-    #         10.8 10.1 12.7 15 18.2 23.8 32.3 45.5 50];
+        # linearization parameter a
+        g = self.data["g"]
+        # print(g)
 
-    #     tfMiddleInterp = interp1(fMiddle, tfMiddle, kv.fVec, 'pchip');
+        a = self.data["a"]
 
-    #     data.tfOuterMiddle = tfOuterInterp + tfMiddleInterp;
+        dat.a = Interp.interp1(g, a, dat.g) #Again, none pchip
+
+        #  compressive exponent alpha
+        g = np.array(self.data["gCompression"])
+
+        alpha = self.data["alpha"]
+
+        # dat.alpha = Interp.interp1(g, alpha, dat.g)
+
+        dat.c = self.data["c"]
+
+        return dat
+        # data.alpha = , 'pchip');
+
+        # data.c = 0.046871; % constant to get loudness scale to sone
+    
+    
+        
+        
+
+   
     #     data.tfOuter = tfOuter;
     #     data.tfMiddle = tfMiddle;
     #     data.fOuter = fOuter;
@@ -51,5 +107,8 @@ class GlasbergComputer:
     
 
 if __name__ == '__main__':
+    
     g = GlasbergComputer()
-    g.OuterMiddle(",","2007",True) 
+    # print("OuterMiddle treatment is : "  , g.OuterMiddle(np.array([0.5,7,1000]),"2007",False))
+    print("SpecLoud is :" , g.SpecLoudness([1,2]) )
+
