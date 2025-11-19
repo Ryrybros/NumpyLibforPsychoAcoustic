@@ -17,6 +17,12 @@ class ReturnedData:
 
 #SpecLoud
         self.tQ = None
+        self.tQ500 = None
+        self.g = None
+        self.a = None
+        self.alpha = None
+        self.c = None
+
 
 class GlasbergComputer:
 
@@ -76,33 +82,19 @@ class GlasbergComputer:
 
         a = self.data["a"]
 
-        dat.a = Interp.interp1(g, a, dat.g) #Again, none pchip
+        dat.a = Interp.interp1(dat.g, g, a) #Again, none pchip
 
         #  compressive exponent alpha
         g = np.array(self.data["gCompression"])
 
         alpha = self.data["alpha"]
 
-        # dat.alpha = Interp.interp1(g, alpha, dat.g)
+        dat.alpha = Interp.interp1(dat.g,g, alpha)
 
         dat.c = self.data["c"]
 
         return dat
-        # data.alpha = , 'pchip');
 
-        # data.c = 0.046871; % constant to get loudness scale to sone
-    
-    
-        
-        
-
-   
-    #     data.tfOuter = tfOuter;
-    #     data.tfMiddle = tfMiddle;
-    #     data.fOuter = fOuter;
-    #     data.fMiddle = fMiddle;
-    # end
-    
 
     
 
@@ -110,5 +102,5 @@ if __name__ == '__main__':
     
     g = GlasbergComputer()
     # print("OuterMiddle treatment is : "  , g.OuterMiddle(np.array([0.5,7,1000]),"2007",False))
-    print("SpecLoud is :" , g.SpecLoudness([1,2]) )
+    print("SpecLoud is :" , g.OuterMiddle([1,2],"1997",True).tfOuterMiddle )
 

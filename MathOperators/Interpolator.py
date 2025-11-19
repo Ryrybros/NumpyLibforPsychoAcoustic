@@ -4,7 +4,8 @@ class Interpolator:
 
 
     def interp1(x : float, xp : np.array , fp : np.array):
-        #check if this is the right interpolation
+        #Need to check if this is the right interpolation
+        assert(len(xp) == len(fp)  )
         return np.interp(x, xp, fp)
     
 
