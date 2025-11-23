@@ -1,6 +1,7 @@
 import numpy as np
 from filetools import jsonHandler
 from MathOperators import Interpolator
+import matplotlib.pyplot as plt
 
 Json = jsonHandler.jsonHandler
 Interp = Interpolator.Interpolator
@@ -46,7 +47,7 @@ class GlasbergComputer:
         tfOuter = np.array(self.data[dataModel][f"tfOuter{regim}"])
 
         tfOuterInterp = Interp.interp1(fVec,fOuter, tfOuter) #None Pchip interpolation, this is linear, pchip is cubic
-
+        
         fMiddle = np.array(self.data[dataModel]["fMiddle"])
         tfMiddle= np.array(self.data[dataModel]["tfMiddle"])
         # print(tfMiddle)
@@ -58,9 +59,15 @@ class GlasbergComputer:
 
         dat.tfOuterMiddle = tfMiddleInterp + tfOuterInterp
         dat.tfOuter = tfOuter
-        dat.tfMiddle
-        dat.fOuter
-        dat.fMiddle
+        dat.tfMiddle = tfMiddle
+        dat.fOuter = fOuter
+        dat.fMiddle = fMiddle
+
+        y = tfOuterInterp
+        linspace = np.array([(1/(len(y) - 1 ))*i for i in range(len(y))])
+        # plt.plot(fVec, fVec)
+        # # plt.plot(fMiddle,tfMiddle)
+        # plt.show()
         
         return dat
     
@@ -99,8 +106,13 @@ class GlasbergComputer:
     
 
 if __name__ == '__main__':
+
     
     g = GlasbergComputer()
     # print("OuterMiddle treatment is : "  , g.OuterMiddle(np.array([0.5,7,1000]),"2007",False))
     print("SpecLoud is :" , g.OuterMiddle([1,2],"1997",True).tfOuterMiddle )
+    # linspace = np.array([(1/(len(y) - 1 ))*i for i in range(len(y))])
+    # plt.plot(linspace, y)
+    
+
 
