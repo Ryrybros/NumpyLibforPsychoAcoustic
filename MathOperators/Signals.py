@@ -1,0 +1,20 @@
+import numpy as np
+
+
+
+class sineMaker:
+
+    
+
+    def makeSine(f,time,dB,cutfreq):
+        x = np.array([ (time*(i/cutfreq)) for i in range(cutfreq) ])#0:(time/cutfreq):time)
+        if(dB != 0):
+            sine = ((10**(-3 - 17/20))*(10 ** (abs(dB)/20)))*np.sin((2*np.pi*f)*x)
+        else:
+            sine = ((10^(-3 - 17/20)))*np.sin((2*np.pi*f)*x)
+
+        # plt.plot(x, sine)
+        # plt.show()
+        return sine
+    
+

@@ -18,8 +18,8 @@ if __name__ == '__main__':
     inter = Interpolator.interp1( x,x,y)
     # assert(inter[0] == 5)
     import matplotlib.pyplot as plt
-    plt.plot(x,inter)
-    plt.show()
+    # plt.plot(x,inter)
+    # plt.show()
     #print(inter)
 
 

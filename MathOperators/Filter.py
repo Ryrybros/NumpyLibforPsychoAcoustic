@@ -1,14 +1,19 @@
 
 from filetools.jsonHandler import jsonHandler
-import numpy as np
 from Glasberg2002.GlasbergComputer import GlasbergComputer
+from Glasberg2002.lfatargrepoducer import KV
+
+from MathOperators.Signals import sineMaker
+
+import numpy as np
 import matplotlib.pyplot as plt
 
 class FilterComputer :
-    def FIR(fVec : np.array, model : str, free : bool):
+    def FIR(kv : KV, model : str, free : bool):
         #General computation of FIR filter independantly of chosen model or hypothesis.
         data = jsonHandler.readJson("data/Glasberg2002.json") 
         glasberg = GlasbergComputer()   
+        fVec = np.linspace(kv.flow,kv.fhigh, abs(kv.flow - kv.fhigh) )
         glasbData = glasberg.OuterMiddle(fVec, model, free )
         
         tfLinear = 10**(glasbData.tfOuterMiddle/10)
@@ -20,43 +25,38 @@ class FilterComputer :
 
         linspace = np.array([(1/(len(fVec) - 1 ))*i for i in range(len(fVec))])
 
-        # plt.plot(linspace, tfLinear)
-        # plt.show()
-
+        plt.plot(linspace, tfLinear)
+        
+        
         # print(linspace)
-        outerMiddleFilter = FilterComputer.fir2(150, linspace, tfLinear)
+        outerMiddleFilter = FilterComputer.fir2(kv.order, linspace, tfLinear)
+        outerMiddleFilter = outerMiddleFilter[ : int(len(outerMiddleFilter)/2)] #seems to be more corresponding to the matlab behavior
         # print(outerMiddleFilter)
+
+        plt.plot(np.linspace(0,1,len(outerMiddleFilter)), outerMiddleFilter)
+
+        plt.show()
 
 
         
 
     def fir2(order : float, domain : np.array, interpolatedValues : np.array):
         from scipy import signal
-        
         return signal.firwin2(order, domain, interpolatedValues )
     
 
         
 
-def sineMaker(f,time,dB,cutfreq):
-    x = np.array([ (time*(i/cutfreq)) for i in range(cutfreq) ])#0:(time/cutfreq):time)
-    if(dB != 0):
-      sine = ((10**(-3 - 17/20))*(10 ** (abs(dB)/20)))*np.sin((2*np.pi*f)*x)
-    else:
-        sine = ((10^(-3 - 17/20)))*np.sin((2*np.pi*f)*x)
-
-
-    # plt.plot(x, sine)
-    # plt.show()
-    return sine
-
 
 # FIR(np.array([2,0,3,5]) , "1997" , True)
 
 if __name__ == '__main__':
+    kv = KV()
+    kv.setStandard()
     f = FilterComputer()
-    y = sineMaker(10,1,40,20000)
-    FilterComputer.FIR(y ,'1997', True)
+    y = sineMaker.makeSine(10,1,40,20000)
+    fv = np.linspace(kv.flow,20000)
+    FilterComputer.FIR(kv ,'1997', True)
     
     
     
