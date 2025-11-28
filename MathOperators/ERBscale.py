@@ -2,7 +2,14 @@ import numpy as np
 
 class ERB :
 
-    def f2erbrate(f : np.array, model : str):
+    def f2erbrate(f : np.array, *erbModel : str):
+        
+        if(len(erbModel) < 1):
+            model = 'moore1983'
+        else:
+            model = erbModel[0] 
+
+        
         match model :
             case 'moore1983':
                 f = f / 1000
@@ -14,11 +21,19 @@ class ERB :
             case _:
                 Exception('Unknown model for the conversion.')
                 return
-            
+
         
         return erbrate
         
-    def erbrate2f(erbrate: np.array, model: str):
+    def erbrate2f(erbrate: np.array, *erbModel: str):
+        #performs reverse transform as f2erbrate
+
+        if(len(erbModel) < 1):
+            model = 'moore1983'
+        else:
+            model = erbModel[0] 
+
+        
         match model :
                 case 'moore1983':
                     f = (0.312 - (np.exp((erbrate - 43)/11.17)) * 14.675) / (np.exp((erbrate - 43)/11.17) - 1)

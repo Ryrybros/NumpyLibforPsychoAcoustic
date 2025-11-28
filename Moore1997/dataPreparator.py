@@ -3,6 +3,7 @@ from filetools import jsonHandler
 from MathOperators import Interpolator
 import matplotlib.pyplot as plt
 
+
 Json = jsonHandler.jsonHandler
 Interp = Interpolator.Interpolator
 
@@ -10,27 +11,25 @@ class ReturnedData:
 
     def __init__(self):
         #OuterMiddleEar
-        self.tfOuterMiddle = None
-        self.tfOuter = None
-        self.tfMiddle = None
-        self.fOuter = None
-        self.fMiddle = None
+        tfOuterMiddle = None
+        tfOuter = None
+        tfMiddle = None
+        fOuter = None
+        fMiddle = None
 
-#SpecLoud
-        self.tQ = None
-        self.tQ500 = None
-        self.g = None
-        self.a = None
-        self.alpha = None
-        self.c = None
+        #SpecLoud
+        tQ = None
+        tQ500 = None
+        g = None
+        a = None
+        alpha = None
+        c = None
 
 
-class GlasbergComputer:
+class dataPreparator:
 
-    def __init__(self):
-        self.data = Json.readJson("data/Glasberg2002.json")
 
-    def OuterMiddle(self,fVec : np.array, model : str, free : bool ):
+    def OuterMiddle(data : dict ,fVec : np.array, model : str, free : bool ):
 
         # transfer function of the outer ear
         try:
@@ -43,13 +42,13 @@ class GlasbergComputer:
         else:
             regim = "Diffuse"
 
-        fOuter = np.array(self.data[dataModel]["fOuter"])
-        tfOuter = np.array(self.data[dataModel][f"tfOuter{regim}"])
+        fOuter = np.array(data[dataModel]["fOuter"])
+        tfOuter = np.array(data[dataModel][f"tfOuter{regim}"])
 
         tfOuterInterp = Interp.interp1(fVec,fOuter, tfOuter) #None Pchip interpolation, this is linear, pchip is cubic
         
-        fMiddle = np.array(self.data[dataModel]["fMiddle"])
-        tfMiddle= np.array(self.data[dataModel]["tfMiddle"])
+        fMiddle = np.array(data[dataModel]["fMiddle"])
+        tfMiddle= np.array(data[dataModel]["tfMiddle"])
         # print(tfMiddle)
 
         tfMiddleInterp = Interp.interp1(fVec,fMiddle, tfMiddle) #None Pchip interpolation, this is linear, pchip is cubic
@@ -64,19 +63,19 @@ class GlasbergComputer:
         dat.fMiddle = fMiddle
 
         y = tfOuterInterp
-        linspace = np.array([(1/(len(y) - 1 ))*i for i in range(len(y))])
+        # linspace = np.array([(1/(len(y) - 1 ))*i for i in range(len(y))])
         # plt.plot(fVec, fVec)
         # # plt.plot(fMiddle,tfMiddle)
         # plt.show()
         
         return dat
     
-    def SpecLoudness(self , fVec : np.array):
+    def SpecLoudness(data : dict, fVec : np.array):
 
         dat = ReturnedData()
-        fRef = self.data["fRef"]
+        fRef = data["fRef"]
         # print(fRef)
-        tQ = self.data["tQ"]
+        tQ = data["tQ"]
 
         dat.tQ = Interp.interp1(fVec, fRef,tQ)
         dat.tQ500 = tQ[11]
@@ -84,21 +83,21 @@ class GlasbergComputer:
         dat.g = dat.tQ500-dat.tQ    # low level gain in cochlea amplifier
 
         # linearization parameter a
-        g = self.data["g"]
+        g = data["g"]
         # print(g)
 
-        a = self.data["a"]
+        a = data["a"]
 
         dat.a = Interp.interp1(dat.g, g, a) #Again, none pchip
 
         #  compressive exponent alpha
-        g = np.array(self.data["gCompression"])
+        g = np.array(data["gCompression"])
 
-        alpha = self.data["alpha"]
+        alpha = data["alpha"]
 
         dat.alpha = Interp.interp1(dat.g,g, alpha)
 
-        dat.c = self.data["c"]
+        dat.c = data["c"]
 
         return dat
 
@@ -108,9 +107,9 @@ class GlasbergComputer:
 if __name__ == '__main__':
 
     
-    g = GlasbergComputer()
-    # print("OuterMiddle treatment is : "  , g.OuterMiddle(np.array([0.5,7,1000]),"2007",False))
-    print("SpecLoud is :" , g.OuterMiddle([1,2],"1997",True).tfOuterMiddle )
+    g = dataPreparator()
+        # print("OuterMiddle treatment is : "  , g.OuterMiddle(np.array([0.5,7,1000]),"2007",False))
+    #print("SpecLoud is :" , g.OuterMiddle([1,2],"1997",True).tfOuterMiddle )
     # linspace = np.array([(1/(len(y) - 1 ))*i for i in range(len(y))])
     # plt.plot(linspace, y)
     

@@ -1,0 +1,112 @@
+
+from filetools.jsonHandler import jsonHandler
+from Moore1997.GlasbergComputer import GlasbergComputer
+
+
+from MathOperators.Signals import sineMaker
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+class FilterComputer :
+    def FIR(kv : dict , model : str, free : bool):
+        class returned:
+
+            def __init__(self):
+                self.tfLinear = None
+                self.outerMiddleFilter = None
+                self.earSig = None
+        #General computation of FIR filter independantly of chosen model or hypothesis.
+        data = jsonHandler.readJson("data/Glasberg2002.json") 
+        glasberg = GlasbergComputer()   
+        fVec = np.linspace(kv["flow"],kv["fhigh"], abs(kv["flow"] - kv["fhigh"]) )
+        glasbData = glasberg.OuterMiddle(fVec, model, free )
+        
+        tfLinear = 10**(glasbData.tfOuterMiddle/10)
+
+        print("tfLinear is : ")
+        print(tfLinear)
+        tfLinear[len(tfLinear) - 1] = 0.0 #This is imposed by the fir2 filter function because of the following error  : 
+        #A Type II filter must have zero gain at the Nyquist frequency.
+
+        linspace = np.array([(1/(len(fVec) - 1 ))*i for i in range(len(fVec))])
+
+        # plt.plot(linspace, tfLinear)
+        
+        
+        # print(linspace)
+        outerMiddleFilter = FilterComputer.fir2(kv["order"], linspace, tfLinear)
+        outerMiddleFilter = outerMiddleFilter[ : int(len(outerMiddleFilter)/2)] #seems to be more corresponding to the matlab behavior
+        # print(outerMiddleFilter)
+
+        # plt.plot(np.linspace(0,1,len(outerMiddleFilter)), outerMiddleFilter)
+
+        # plt.show()
+        r = returned()
+        r.tfLinear = tfLinear
+        r.outerMiddleFilter = outerMiddleFilter
+        return r
+
+    def filtfilt(numerator : np.array, denominator : np.array, x : np.array ):
+        from scipy import signal
+        return signal.filtfilt(b = numerator, a = denominator, x = x)
+        
+
+    def fir2(order : float, domain : np.array, interpolatedValues : np.array):
+        #!! numtaps et order n'ont pas le mm compotzment, decalage de +1
+        from scipy import signal
+        return signal.firwin2(order, domain, interpolatedValues )
+    
+
+def plotfiltfilt(b,a,y):
+    import matplotlib.pyplot as plt
+    from scipy import signal
+
+    t = np.linspace(0, 1.0, 2001)
+    
+    b, a = signal.ellip(4, 0.01, 120, 0.125) #Only this filter works.
+
+
+
+    rng = np.random.default_rng()
+
+    n = 60
+
+    # sig = rng.standard_normal(n)**3 + 3*rng.standard_normal(n).cumsum()  
+    sig = y
+
+    print("Computing Gust...")
+    fgust = signal.filtfilt(b, a, sig, method="gust")
+    print("Computing other...")
+    fpad = signal.filtfilt(b, a, sig, padlen=50)
+
+    plt.plot(sig, 'k-', label='input')
+
+    plt.plot(fgust, 'b-', linewidth=4, label='gust')
+
+    plt.plot(fpad, 'c-', linewidth=1.5, label='pad')
+
+    plt.legend(loc='best')
+
+    plt.show()
+
+
+
+# FIR(np.array([2,0,3,5]) , "1997" , True)
+
+if __name__ == '__main__':
+    
+    # kv["setStandard()
+    # f = FilterComputer()
+    y = sineMaker.makeSine(10,0,0.2,40,60)
+    y += sineMaker.makeSine(78,10,0.2,40,60)
+    y += sineMaker.makeSine(347,-24,0.2,40,60)
+
+    
+    # F = FilterComputer.FIR(kv ,'1997', True)
+
+    # plotfiltfilt(F.tfLinear,1,y)
+
+    
+    
+    
