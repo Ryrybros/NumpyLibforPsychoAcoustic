@@ -1,7 +1,7 @@
 
 from filetools.jsonHandler import jsonHandler
-from Moore1997.GlasbergComputer import GlasbergComputer
-
+from Moore1997._dataPreparator import dataPreparator
+import Moore1997.model as test
 
 from MathOperators.Signals import sineMaker
 
@@ -18,9 +18,9 @@ class FilterComputer :
                 self.earSig = None
         #General computation of FIR filter independantly of chosen model or hypothesis.
         data = jsonHandler.readJson("data/Glasberg2002.json") 
-        glasberg = GlasbergComputer()   
+        # glasberg = dataPreparator()   
         fVec = np.linspace(kv["flow"],kv["fhigh"], abs(kv["flow"] - kv["fhigh"]) )
-        glasbData = glasberg.OuterMiddle(fVec, model, free )
+        glasbData = dataPreparator.OuterMiddle(data , fVec, model, free )
         
         tfLinear = 10**(glasbData.tfOuterMiddle/10)
 
@@ -64,7 +64,7 @@ def plotfiltfilt(b,a,y):
 
     t = np.linspace(0, 1.0, 2001)
     
-    b, a = signal.ellip(4, 0.01, 120, 0.125) #Only this filter works.
+    # b, a = signal.ellip(4, 0.01, 120, 0.125) #Only this filter works.
 
 
 
@@ -76,15 +76,20 @@ def plotfiltfilt(b,a,y):
     sig = y
 
     print("Computing Gust...")
-    fgust = signal.filtfilt(b, a, sig, method="gust")
+    # fgust = signal.filtfilt(b, a, sig, method="gust")
     print("Computing other...")
-    fpad = signal.filtfilt(b, a, sig, padlen=50)
+    # fpad = signal.filtfilt(b, a, sig, padlen=50)
+
+    fself = FilterComputer.filtfilt(b,a,sig)
 
     plt.plot(sig, 'k-', label='input')
 
-    plt.plot(fgust, 'b-', linewidth=4, label='gust')
+    # plt.plot(fgust, 'b-', linewidth=4, label='gust')
 
-    plt.plot(fpad, 'c-', linewidth=1.5, label='pad')
+    # plt.plot(fpad, 'c-', linewidth=1.5, label='pad')
+
+    plt.plot(fself, 'c-', linewidth=1.5, label='self')
+
 
     plt.legend(loc='best')
 
@@ -96,16 +101,17 @@ def plotfiltfilt(b,a,y):
 
 if __name__ == '__main__':
     
-    # kv["setStandard()
+    m = test.model(True)
+    kv = m.kv
     # f = FilterComputer()
-    y = sineMaker.makeSine(10,0,0.2,40,60)
-    y += sineMaker.makeSine(78,10,0.2,40,60)
-    y += sineMaker.makeSine(347,-24,0.2,40,60)
+    y = sineMaker.makeSine(1000,0,0.2,40,60)
+    y += sineMaker.makeSine(780,10,0.2,40,60)
+    y += sineMaker.makeSine(3407,-24,0.2,40,60)
 
     
-    # F = FilterComputer.FIR(kv ,'1997', True)
+    F = FilterComputer.FIR(kv ,'1997', True)
 
-    # plotfiltfilt(F.tfLinear,1,y)
+    plotfiltfilt(F.tfLinear,1,y)
 
     
     

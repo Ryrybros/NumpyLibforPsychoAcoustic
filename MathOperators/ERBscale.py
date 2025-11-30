@@ -36,7 +36,7 @@ class ERB :
         
         match model :
                 case 'moore1983':
-                    f = (0.312 - (np.exp((erbrate - 43)/11.17)) * 14.675) / (np.exp((erbrate - 43)/11.17) - 1)
+                    f = (0.312 - (np.exp((erbrate - 43*np.ones(len(erbrate)) )/11.17)) * 14.675) / (np.exp((erbrate - 43*np.ones(len(erbrate)) )/11.17) - 1)
                     f = f * 1000; 
                 case 'glasberg1990':
                         f = (10**(erbrate/21.366)-1)/4.368
@@ -70,11 +70,13 @@ if __name__ == '__main__':
         print("ERROR : The model is likely not correct")
         scale2 = x
 
-    # print(scale)
+    
     import matplotlib.pyplot as plt
     plt.plot(x,scale)
-    plt.plot(x,f)
-    # plt.plot(x,scale2)
+    
+    # plt.plot(x,f)
+
+    plt.plot(x,scale2)
 
 
 
