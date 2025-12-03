@@ -7,29 +7,18 @@ import matplotlib.pyplot as plt
 Json = jsonHandler.jsonHandler
 Interp = Interpolator.Interpolator
 
-class ReturnedData:
-
-    def __init__(self):
-        #OuterMiddleEar
-        tfOuterMiddle = None
-        tfOuter = None
-        tfMiddle = None
-        fOuter = None
-        fMiddle = None
-
-        #SpecLoud
-        tQ = None
-        tQ500 = None
-        g = None
-        a = None
-        alpha = None
-        c = None
 
 
 class dataPreparator:
 
 
     def OuterMiddle(data : dict ,fVec : np.array, model : str, free : bool ):
+                
+        class ReturnedData:
+
+            def __init__(self):
+                #OuterMiddleEar
+                self.empty = True            
 
         # transfer function of the outer ear
         try:
@@ -72,6 +61,13 @@ class dataPreparator:
     
     def SpecLoudness(data : dict, fVec : np.array):
 
+        
+        class ReturnedData:
+
+            def __init__(self):
+                #OuterMiddleEar
+                self.empty = True   
+                
         dat = ReturnedData()
         fRef = data["fRef"]
         # print(fRef)

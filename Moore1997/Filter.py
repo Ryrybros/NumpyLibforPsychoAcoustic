@@ -82,9 +82,9 @@ def plotfiltfilt(b,a,y):
 
     fself = FilterComputer.filtfilt(b,a,sig)
 
-    plt.plot(sig, 'k-', label='input')
+    plt.plot(sig, 'k-',linewidth=3 ,label='input')
 
-    # plt.plot(fgust, 'b-', linewidth=4, label='gust')
+    # plt.plot(fgust, 'b-', linewidth=1, label='gust')
 
     # plt.plot(fpad, 'c-', linewidth=1.5, label='pad')
 
@@ -104,10 +104,10 @@ if __name__ == '__main__':
     m = test.model(True)
     kv = m.kv
     # f = FilterComputer()
-    y = sineMaker.makeSine(1000,0,0.2,40,60)
-    y += sineMaker.makeSine(780,10,0.2,40,60)
-    y += sineMaker.makeSine(3407,-24,0.2,40,60)
-
+    y = sineMaker.makeSine(1000,0,0.1,40,49000)
+    y += sineMaker.makeSine(780,10,0.1,40,49000)
+    y += sineMaker.makeSine(3407,-24,0.1,40,49000)
+    print(len(y))
     
     F = FilterComputer.FIR(kv ,'1997', True)
 
