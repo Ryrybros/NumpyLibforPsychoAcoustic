@@ -20,22 +20,24 @@ class FilterComputer :
         data = jsonHandler.readJson("data/Glasberg2002.json") 
         # glasberg = dataPreparator()   
         fVec = np.linspace(kv["flow"],kv["fhigh"], abs(kv["flow"] - kv["fhigh"]) )
+        # print("length of fVec is : ",len(fVec))
         glasbData = dataPreparator.OuterMiddle(data , fVec, model, free )
         
         tfLinear = 10**(glasbData.tfOuterMiddle/10)
 
-        print("tfLinear is : ")
-        print(tfLinear)
+        # print("len tfLinear is : ")
+        # print(len(tfLinear))
         tfLinear[len(tfLinear) - 1] = 0.0 #This is imposed by the fir2 filter function because of the following error  : 
         #A Type II filter must have zero gain at the Nyquist frequency.
 
-        linspace = np.array([(1/(len(fVec) - 1 ))*i for i in range(len(fVec))])
-
+       
+        # print("len linsp : ", len(linspace))
         # plt.plot(linspace, tfLinear)
         
         
         # print(linspace)
-        outerMiddleFilter = FilterComputer.fir2(kv["order"], linspace, tfLinear)
+        outerMiddleFilter = FilterComputer.fir2(kv["order"], np.linspace(0,1,len(fVec)), tfLinear)
+        print("out", len(outerMiddleFilter))
         outerMiddleFilter = outerMiddleFilter[ : int(len(outerMiddleFilter)/2)] #seems to be more corresponding to the matlab behavior
         # print(outerMiddleFilter)
 
@@ -55,7 +57,7 @@ class FilterComputer :
     def fir2(order : float, domain : np.array, interpolatedValues : np.array):
         #!! numtaps et order n'ont pas le mm compotzment, decalage de +1
         from scipy import signal
-        return signal.firwin2(order, domain, interpolatedValues )
+        return signal.firwin2(order,domain,interpolatedValues)
     
 
 def plotfiltfilt(b,a,y):
@@ -102,16 +104,22 @@ def plotfiltfilt(b,a,y):
 if __name__ == '__main__':
     
     m = test.model(True)
-    kv = m.kv
-    # f = FilterComputer()
-    y = sineMaker.makeSine(1000,0,0.1,40,49000)
-    y += sineMaker.makeSine(780,10,0.1,40,49000)
-    y += sineMaker.makeSine(3407,-24,0.1,40,49000)
-    print(len(y))
+    # kv = m.kv
+    # # f = FilterComputer()
+    # y = sineMaker.makeSine(1000,0,0.1,40,49000)
+    # y += sineMaker.makeSine(780,10,0.1,40,49000)
+    # y += sineMaker.makeSine(3407,-24,0.1,40,49000)
+    # print(len(y))
     
-    F = FilterComputer.FIR(kv ,'1997', True)
+    # F = FilterComputer.FIR(kv ,'1997', True)
+    from scipy import signal
 
-    plotfiltfilt(F.tfLinear,1,y)
+    a = [0,2,3,4,5]
+    b = [0,6,8,6,9]
+    c = signal.firwin2(3,freq=a,gain= b,fs=10)
+    c = FilterComputer.FIR(m.kv,"1997",True)
+    print(c)
+    # plotfiltfilt(F.tfLinear,1,y)
 
     
     
