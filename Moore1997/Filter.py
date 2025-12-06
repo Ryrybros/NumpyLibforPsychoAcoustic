@@ -9,13 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class FilterComputer :
-    def FIR(kv : dict , model : str, free : bool):
-        class returned:
 
-            def __init__(self):
-                self.tfLinear = None
-                self.outerMiddleFilter = None
-                self.earSig = None
+    def __init__(self,kv : dict , model : str, free : bool):
         #General computation of FIR filter independantly of chosen model or hypothesis.
         data = jsonHandler.readJson("data/Glasberg2002.json") 
         # glasberg = dataPreparator()   
@@ -44,14 +39,20 @@ class FilterComputer :
         # plt.plot(np.linspace(0,1,len(outerMiddleFilter)), outerMiddleFilter)
 
         # plt.show()
-        r = returned()
-        r.tfLinear = tfLinear
-        r.outerMiddleFilter = outerMiddleFilter
-        return r
+        self.tfLinear = tfLinear
+        self.outerMiddleFilter = outerMiddleFilter
+        
 
-    def filtfilt(numerator : np.array, denominator : np.array, x : np.array ):
+    def FIR(self, inSig : np.array):
         from scipy import signal
-        return signal.filtfilt(b = numerator, a = denominator, x = x)
+        b = self.outerMiddleFilter
+
+
+
+        print("sum_b is : "  ,  sum( self.outerMiddleFilter))
+        return(signal.filtfilt(b, a = 1, x = inSig))
+        
+    
         
 
     def fir2(order : float, domain : np.array, interpolatedValues : np.array):
@@ -104,21 +105,35 @@ def plotfiltfilt(b,a,y):
 if __name__ == '__main__':
     
     m = test.model(True)
-    # kv = m.kv
+    kv = m.kv
     # # f = FilterComputer()
     # y = sineMaker.makeSine(1000,0,0.1,40,49000)
     # y += sineMaker.makeSine(780,10,0.1,40,49000)
     # y += sineMaker.makeSine(3407,-24,0.1,40,49000)
     # print(len(y))
     
-    # F = FilterComputer.FIR(kv ,'1997', True)
+    F = FilterComputer(kv ,'1997', True)
     from scipy import signal
-
-    a = [0,2,3,4,5]
-    b = [0,6,8,6,9]
-    c = signal.firwin2(3,freq=a,gain= b,fs=10)
-    c = FilterComputer.FIR(m.kv,"1997",True)
-    print(c)
+    y = sineMaker.makeSine(1000,0,1,10,44000)
+    y1 =  sineMaker.makeSine(100,0,1,40,44000)
+    # y +=  sineMaker.makeSine(2890,0,1,10,44000)
+    # y +=  sineMaker.makeSine(1300,0,1,10,44000)
+    # y +=  sineMaker.makeSine(958,0,1,10,44000)
+    
+    # y = y/abs(max(y) - min(y))
+    
+    f = F.FIR(y)
+    f1 = F.FIR(y1)
+    
+    
+    
+    import matplotlib.pyplot as plt
+    bound = 1000
+    x = np.linspace(0,bound,bound)
+    plt.plot(f[:bound],'-c',linewidth=1,label= 'filtered')
+    plt.plot(f1[:bound],'-k',linewidth=1,label='filtered2')
+    plt.legend()
+    plt.show()
     # plotfiltfilt(F.tfLinear,1,y)
 
     
