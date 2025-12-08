@@ -2,9 +2,11 @@
 from filetools.jsonHandler import jsonHandler
 from Moore1997._dataPreparator import dataPreparator
 import Moore1997.model as test
-
+from scipy import signal
 from MathOperators.Signals import sineMaker
-
+    
+    
+import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -33,23 +35,17 @@ class FilterComputer :
         # print(linspace)
         outerMiddleFilter = FilterComputer.fir2(kv["order"], np.linspace(0,1,len(fVec)), tfLinear)
         print("out", len(outerMiddleFilter))
-        outerMiddleFilter = outerMiddleFilter[ : int(len(outerMiddleFilter)/2)] #seems to be more corresponding to the matlab behavior
-        # print(outerMiddleFilter)
-
-        # plt.plot(np.linspace(0,1,len(outerMiddleFilter)), outerMiddleFilter)
-
-        # plt.show()
+        # outerMiddleFilter = outerMiddleFilter[ : int(len(outerMiddleFilter)/2)] #seems to be more corresponding to the matlab behavior
+       
         self.tfLinear = tfLinear
         self.outerMiddleFilter = outerMiddleFilter
         
 
     def FIR(self, inSig : np.array):
-        from scipy import signal
+        
         b = self.outerMiddleFilter
 
-
-
-        print("sum_b is : "  ,  sum( self.outerMiddleFilter))
+        
         return(signal.filtfilt(b, a = 1, x = inSig))
         
     
@@ -57,46 +53,10 @@ class FilterComputer :
 
     def fir2(order : float, domain : np.array, interpolatedValues : np.array):
         #!! numtaps et order n'ont pas le mm compotzment, decalage de +1
-        from scipy import signal
+        
         return signal.firwin2(order,domain,interpolatedValues)
     
 
-def plotfiltfilt(b,a,y):
-    import matplotlib.pyplot as plt
-    from scipy import signal
-
-    t = np.linspace(0, 1.0, 2001)
-    
-    # b, a = signal.ellip(4, 0.01, 120, 0.125) #Only this filter works.
-
-
-
-    rng = np.random.default_rng()
-
-    n = 60
-
-    # sig = rng.standard_normal(n)**3 + 3*rng.standard_normal(n).cumsum()  
-    sig = y
-
-    print("Computing Gust...")
-    # fgust = signal.filtfilt(b, a, sig, method="gust")
-    print("Computing other...")
-    # fpad = signal.filtfilt(b, a, sig, padlen=50)
-
-    fself = FilterComputer.filtfilt(b,a,sig)
-
-    plt.plot(sig, 'k-',linewidth=3 ,label='input')
-
-    # plt.plot(fgust, 'b-', linewidth=1, label='gust')
-
-    # plt.plot(fpad, 'c-', linewidth=1.5, label='pad')
-
-    plt.plot(fself, 'c-', linewidth=1.5, label='self')
-
-
-    plt.legend(loc='best')
-
-    plt.show()
 
 
 
@@ -113,7 +73,7 @@ if __name__ == '__main__':
     # print(len(y))
     
     F = FilterComputer(kv ,'1997', True)
-    from scipy import signal
+    
     y = sineMaker.makeSine(1000,0,1,10,44000)
     y1 =  sineMaker.makeSine(100,0,1,40,44000)
     # y +=  sineMaker.makeSine(2890,0,1,10,44000)
@@ -125,9 +85,7 @@ if __name__ == '__main__':
     f = F.FIR(y)
     f1 = F.FIR(y1)
     
-    
-    
-    import matplotlib.pyplot as plt
+
     bound = 1000
     x = np.linspace(0,bound,bound)
     plt.plot(f[:bound],'-c',linewidth=1,label= 'filtered')
