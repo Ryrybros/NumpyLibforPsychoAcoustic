@@ -13,30 +13,22 @@ import matplotlib.pyplot as plt
 class FilterComputer :
 
     def __init__(self,kv : dict , model : str, free : bool):
-        #General computation of FIR filter independantly of chosen model or hypothesis.
+        #General computation of FIR filter dependantly of chosen model or hypothesis.
         data = jsonHandler.readJson("data/Glasberg2002.json") 
-        # glasberg = dataPreparator()   
+        
         fVec = np.linspace(kv["flow"],kv["fhigh"], abs(kv["flow"] - kv["fhigh"]) )
-        # print("length of fVec is : ",len(fVec))
+        
         glasbData = dataPreparator.OuterMiddle(data , fVec, model, free )
         
         tfLinear = 10**(glasbData.tfOuterMiddle/10)
 
-        # print("len tfLinear is : ")
-        # print(len(tfLinear))
         tfLinear[len(tfLinear) - 1] = 0.0 #This is imposed by the fir2 filter function because of the following error  : 
         #A Type II filter must have zero gain at the Nyquist frequency.
 
        
-        # print("len linsp : ", len(linspace))
-        # plt.plot(linspace, tfLinear)
         
-        
-        # print(linspace)
         outerMiddleFilter = FilterComputer.fir2(kv["order"], np.linspace(0,1,len(fVec)), tfLinear)
         print("out", len(outerMiddleFilter))
-        # outerMiddleFilter = outerMiddleFilter[ : int(len(outerMiddleFilter)/2)] #seems to be more corresponding to the matlab behavior
-       
         self.tfLinear = tfLinear
         self.outerMiddleFilter = outerMiddleFilter
         
@@ -52,7 +44,7 @@ class FilterComputer :
         
 
     def fir2(order : float, domain : np.array, interpolatedValues : np.array):
-        #!! numtaps et order n'ont pas le mm compotzment, decalage de +1
+        #!! numtaps et order n'ont pas le mm compotzment, decalage de + 1
         
         return signal.firwin2(order,domain,interpolatedValues)
     
