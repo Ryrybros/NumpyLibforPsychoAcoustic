@@ -3,7 +3,7 @@ import numpy as np
 class Interpolator:
 
 
-    def interp1(x : float, xp : np.array , fp : np.array):
+    def interp1(x : np.array, xp : np.array , fp : np.array):
         #Need to check if this is the right interpolation
         assert(len(xp) == len(fp)  )
         return np.interp(x, xp, fp)
@@ -11,11 +11,15 @@ class Interpolator:
 
 
 if __name__ == '__main__':
-    x = [2,3,4]
-    y = [4,6,8]
+    n = 100
+    x = [(np.pi/n)*i for i in range(n)]
+    y = np.sin(x)
     a = np.array([2.5,3,6])
-    inter = Interpolator.interp1( a,x,y)
-    assert(inter[0] == 5)
+    inter = Interpolator.interp1( x,x,y)
+    # assert(inter[0] == 5)
+    import matplotlib.pyplot as plt
+    # plt.plot(x,inter)
+    # plt.show()
     #print(inter)
 
 
