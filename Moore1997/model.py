@@ -2,7 +2,19 @@ from collections import defaultdict
 from Moore1997._dataPreparator import dataPreparator
 from filetools.jsonHandler import jsonHandler
 from MathOperators.ERBscale import ERB
+from MathOperators.Interpolator import Interpolator
+from MathOperators import FFTTreatmment
+from MathOperators import Signals
 import numpy as np
+
+class Result:
+
+    def __init__(self):
+        self.computed = False
+        self.eLdB = None
+        self.erbN = None
+        self.fc = None
+
 class model:
     
     #______________PRETREATMENT______________
@@ -37,6 +49,10 @@ class model:
         self._erbScale()
         self._specLoud()
 
+        self.fftValues = None
+
+        self.results = Result()
+
 
         
     def _erbScale(self):
@@ -68,6 +84,67 @@ class model:
 
     #_____________________________________________END OF PRETREATMENT_____________________________________________
 
+    def _excitationPatern(self, earSig : np.array):
+        #calculate intensity for each ERB (dB/ERB)
+        #Use it after Pretreatment
+
+        self.fftValues = FFTTreatmment.FFTComputer.computeFFT(earSig = earSig , fs= self.kv['fs'])
+
+        erbInt = np.zeros(len(self.erbFc))
+
+        for i in range(len(self.erbFc) ) :
+            
+            loValue = round(self.erbLoFreq[i]*self.fftValues.oneHz)
+            hiValue = round(self.erbHiFreq[i]*self.fftValues.oneHz)
+
+            erbRange = np.linspace( loValue ,hiValue , hiValue - loValue  + 1, dtype= int)
+            # print(type(int(erbRange[0])))
+            sumList =  np.zeros(len(erbRange)) 
+            j = 0
+            for index in  erbRange :
+                # i = int( index )
+                # print(type(i) )
+                sumList[j] = self.fftValues.compInt[ index ]   # intensity sum in each erb
+                j += 1
+
+            erbInt[i] = sumList.sum()   # intensity sum in each erb
+        
+
+        erbdB = 10*np.log10(erbInt/ ( (20e-6)**2 ))   # intensity level in each erb using reference SPL of 20 uPa
+        p511 = 4*1000/ERB.f2erb(1000)    # p for fc=1kHz and a level of 51dB (at 1kHz filters are symmetrical)
+        
+        # erbdB2F = np.interp(  self.fftValues.compFq , [0,self.erbFc,self.kv['fs']/2], [min(erbdB), erbdB ,min(erbdB)] )   # map erbFc to compFq
+        print(self.erbFc)
+        erbdB2F = np.zeros(len(self.erbFc))
+        for ind in range(len(self.erbFc)):
+
+            erbdB2F[ind] = np.interp(x= self.fftValues.compFq, xp = np.array([0,self.erbFc[ind],self.kv['fs']/2] ) , fp = np.array( [min(erbdB), erbdB[ind] ,min(erbdB)] ) ) # map erbFc to compFq
+
+        eL = np.zeros(len(self.erbN))
+
+        for e in range( len(self.erbN) ) :
+            erb = ERB.f2erb(self.erbFc[e])
+            p51 = 4*self.erbFc[e]/erb
+            intensity = 0
+            for comp in range (1 , self.fftValues.nPoints ) :
+                g = (self.fftValues.compFq[comp]-self.erbFc[e])/self.erbFc[e]
+                if g<0 :
+                    p = p51 - 0.35*(p51/p511) * (erbdB2F(comp)-51)
+                else :
+                    p = p51
+                
+                g = abs(g)
+                w = (1+p*g)*np.exp(-p*g)
+                intensity = intensity  +  w  *  self.fftValues.compInt(comp)  #intensity per erb
+            
+            eL[e] = intensity
+
+        self.results.eLdB = 10*np.log10(eL / ( (20e-6)^2 ) ) # get dB SPL (20uPa reference)
+        self.results.erbN = self.erbN
+        self.results.fc = self.erbFc
+
+
+
 
         
 
@@ -78,8 +155,8 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     print( int(2000/len(m.erbN)) )
     print( len(m.erbN))
-    # plt.plot(np.linspace(0,2000, len(m.erbN) ),m.erbN)
-    # plt.plot(np.linspace(0,2000, len(m.erbNMax) ),m.erbNMax)
-    # plt.plot(np.linspace(0,2000, len(m.erbNMin) ),m.erbNMin)
-
-    # plt.show()
+    y = Signals.sineMaker.makeSine(1000,0,1,20,m.kv['fs']) #it is crucial that both signals matlab/python have the same parameters (time is important)
+    
+    m._excitationPatern(y)
+    print(m.results.eLdB)
+    
