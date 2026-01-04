@@ -2,13 +2,9 @@ import numpy as np
 
 class ERB :
 
-    def f2erbrate(f : np.array, *erbModel : str):
+    def f2erbrate(f : np.array, erbModel = "moore1983"):
         
-        if(len(erbModel) < 1):
-            model = 'moore1983'
-        else:
-            model = erbModel[0] 
-
+        model = erbModel
         
         match model :
             case 'moore1983':
@@ -25,18 +21,14 @@ class ERB :
         
         return erbrate
         
-    def erbrate2f(erbrate: np.array, *erbModel: str):
+    def erbrate2f(erbrate: np.array, erbModel = 'moore1983' ):
         #performs reverse transform as f2erbrate
-
-        if(len(erbModel) < 1):
-            model = 'moore1983'
-        else:
-            model = erbModel[0] 
-
+        model = erbModel
         
         match model :
                 case 'moore1983':
-                    f = (0.312 - (np.exp((erbrate - 43*np.ones(len(erbrate)) )/11.17)) * 14.675) / (np.exp((erbrate - 43*np.ones(len(erbrate)) )/11.17) - 1)
+                    f = (0.312 - (np.exp((np.array(erbrate) - 43)/11.17)) * 14.675) / (np.exp((np.array(erbrate) - 43)/11.17) - 1)
+                    # f = (0.312 - (np.exp((erbrate - 43*np.ones(len(erbrate)) )/11.17)) * 14.675) / (np.exp((erbrate - 43*np.ones(len(erbrate)) )/11.17) - 1)
                     f = f * 1000; 
                 case 'glasberg1990':
                         f = (10**(erbrate/21.366)-1)/4.368
@@ -44,7 +36,7 @@ class ERB :
                 case _:
                     Exception('Unknown model for the conversion.')
                     return
-            
+        # print("f of erbrate2f is : ", f)
         return f
     
 

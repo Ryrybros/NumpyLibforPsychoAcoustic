@@ -59,12 +59,13 @@ class model:
         self.erbNMin = ERB.f2erbrate(self.kv["erbFcMin"])
         self.erbNMax = ERB.f2erbrate(self.kv["erbFcMax"])
         
-        self.erbN = [self.erbNMin + self.kv["erbStep"]*i for i in range(int((self.erbNMax - self.erbNMin)/self.kv["erbStep"]))] #erbNMin:kv.erbStep:erbNMax    # numbers of erb bands
-        # self.erbN = np.linspace(self.erbNMin, ) 
+        # self.erbN = np.array( [self.erbNMin + self.kv["erbStep"]*i for i in range(int((self.erbNMax - self.erbNMin)/self.kv["erbStep"]))] )#erbNMin:kv.erbStep:erbNMax    # numbers of erb bands
+        self.erbN = np.arange(self.erbNMin , self.erbNMax + self.kv["erbStep"], self.kv["erbStep"]  ) 
+        
         self.erbFc = ERB.erbrate2f(self.erbN)        # center frequency of erb bands
 
-        self.erbLoFreq = ERB.erbrate2f(self.erbN-0.5*np.ones(len(self.erbN))) # lower limit of each ERB filter
-        self.erbHiFreq = ERB.erbrate2f(self.erbN+0.5*np.ones(len(self.erbN))) # upper limit of each ERB filter
+        self.erbLoFreq = ERB.erbrate2f(self.erbN - 0.5 ) # lower limit of each ERB filter
+        self.erbHiFreq = ERB.erbrate2f(self.erbN + 0.5 ) # upper limit of each ERB filter
 
     def _specLoud(self):
         
@@ -97,8 +98,9 @@ class model:
             
             loValue = round(self.erbLoFreq[i]*self.fftValues.oneHz)
             hiValue = round(self.erbHiFreq[i]*self.fftValues.oneHz)
+            # print("hi Val : " ,hiValue)
 
-            erbRange = np.linspace( loValue ,hiValue , hiValue - loValue , dtype= int)
+            erbRange = np.linspace( loValue ,hiValue, hiValue - loValue  , dtype= int)
             # print(type(int(erbRange[0])))
             sumList =  np.zeros(len(erbRange)) 
             # print("erbRange ", len(erbRange) )
@@ -108,7 +110,7 @@ class model:
                 # print(type(i) )
                 
                 if(index < len(self.fftValues.compInt)):
-                    sumList[j] = self.fftValues.compInt[ index ]   # intensity sum in each erb
+                    sumList[j] = self.fftValues.compInt[ index ]   # intensity in each erb
                 else:
                     if((index == max(erbRange)) & ( i >= len(self.erbFc) - 1 ) ):
                         print("Warning !! Offset between erbRange and length of compInt ,\n maximum offset is : ", index - len(self.fftValues.compInt), ".\n")
@@ -146,7 +148,8 @@ class model:
                 g = abs(g)
                 w = (1+p*g)*np.exp(-p*g)
                 if( (p*g >  10**10 )):
-                    w = 0
+                    w = 10**(-10)
+                
                 intensity = intensity  +  w  *  self.fftValues.compInt[comp] #intensity per erb
             
             eL[e] = intensity
@@ -171,5 +174,5 @@ if __name__ == '__main__':
     y = Signals.sineMaker.makeSine(1000,0,1,20,m.kv['fs']) #it is crucial that both signals matlab/python have the same parameters (time is important)
     
     m._excitationPatern(y)
-    print(len(m.results.eLdB))
+    print(len(m.erbN))
     
