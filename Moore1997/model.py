@@ -59,7 +59,8 @@ class model:
         self.erbNMin = ERB.f2erbrate(self.kv["erbFcMin"])
         self.erbNMax = ERB.f2erbrate(self.kv["erbFcMax"])
         
-        self.erbN = [self.erbNMin + self.kv["erbStep"]*i for i in range(int(self.erbNMax - self.erbNMin))] #erbNMin:kv.erbStep:erbNMax    # numbers of erb bands
+        self.erbN = [self.erbNMin + self.kv["erbStep"]*i for i in range(int((self.erbNMax - self.erbNMin)/self.kv["erbStep"]))] #erbNMin:kv.erbStep:erbNMax    # numbers of erb bands
+        # self.erbN = np.linspace(self.erbNMin, ) 
         self.erbFc = ERB.erbrate2f(self.erbN)        # center frequency of erb bands
 
         self.erbLoFreq = ERB.erbrate2f(self.erbN-0.5*np.ones(len(self.erbN))) # lower limit of each ERB filter
@@ -97,14 +98,20 @@ class model:
             loValue = round(self.erbLoFreq[i]*self.fftValues.oneHz)
             hiValue = round(self.erbHiFreq[i]*self.fftValues.oneHz)
 
-            erbRange = np.linspace( loValue ,hiValue , hiValue - loValue  + 1, dtype= int)
+            erbRange = np.linspace( loValue ,hiValue , hiValue - loValue , dtype= int)
             # print(type(int(erbRange[0])))
             sumList =  np.zeros(len(erbRange)) 
+            # print("erbRange ", len(erbRange) )
             j = 0
             for index in  erbRange :
                 # i = int( index )
                 # print(type(i) )
-                sumList[j] = self.fftValues.compInt[ index ]   # intensity sum in each erb
+                
+                if(index < len(self.fftValues.compInt)):
+                    sumList[j] = self.fftValues.compInt[ index ]   # intensity sum in each erb
+                else:
+                    if((index == max(erbRange)) & ( i >= len(self.erbFc) - 1 ) ):
+                        print("Warning !! Offset between erbRange and length of compInt ,\n maximum offset is : ", index - len(self.fftValues.compInt), ".\n")
                 j += 1
 
             erbInt[i] = sumList.sum()   # intensity sum in each erb
@@ -114,32 +121,38 @@ class model:
         p511 = 4*1000/ERB.f2erb(1000)    # p for fc=1kHz and a level of 51dB (at 1kHz filters are symmetrical)
         
         # erbdB2F = np.interp(  self.fftValues.compFq , [0,self.erbFc,self.kv['fs']/2], [min(erbdB), erbdB ,min(erbdB)] )   # map erbFc to compFq
-        print(self.erbFc)
+        # print("\n erbFc : " , self.erbFc)
         erbdB2F = np.zeros(len(self.erbFc))
-        for ind in range(len(self.erbFc)):
+        # print("\n compFq : " , self.fftValues.compFq)
+        # print( "\n erbdB : " , erbdB )
+        # print("\n erbdB min : " ,min(erbdB))
+        #for ind in range(len(self.erbFc)):
 
-            erbdB2F[ind] = np.interp(x= self.fftValues.compFq, xp = np.array([0,self.erbFc[ind],self.kv['fs']/2] ) , fp = np.array( [min(erbdB), erbdB[ind] ,min(erbdB)] ) ) # map erbFc to compFq
+        erbdB2F = np.interp(x= self.fftValues.compFq, xp = np.concatenate( ( [0],self.erbFc,[self.kv['fs']/2] ) ) , fp = np.concatenate( ( [min(erbdB) ], erbdB , [min(erbdB)] ) ) ) # map erbFc to compFq
 
         eL = np.zeros(len(self.erbN))
-
+        
         for e in range( len(self.erbN) ) :
             erb = ERB.f2erb(self.erbFc[e])
             p51 = 4*self.erbFc[e]/erb
             intensity = 0
-            for comp in range (1 , self.fftValues.nPoints ) :
+            for comp in range (self.fftValues.nPoints ) :
                 g = (self.fftValues.compFq[comp]-self.erbFc[e])/self.erbFc[e]
                 if g<0 :
-                    p = p51 - 0.35*(p51/p511) * (erbdB2F(comp)-51)
+                    p = p51 - 0.35*(p51/p511) * (erbdB2F[comp] - 51)
                 else :
                     p = p51
                 
                 g = abs(g)
                 w = (1+p*g)*np.exp(-p*g)
-                intensity = intensity  +  w  *  self.fftValues.compInt(comp)  #intensity per erb
+                if( (p*g >  10**10 )):
+                    w = 0
+                intensity = intensity  +  w  *  self.fftValues.compInt[comp] #intensity per erb
             
             eL[e] = intensity
 
-        self.results.eLdB = 10*np.log10(eL / ( (20e-6)^2 ) ) # get dB SPL (20uPa reference)
+        self.results.eLdB = 10*np.log10(eL / ( (20e-6)**2 ) ) # get dB SPL (20uPa reference)
+        
         self.results.erbN = self.erbN
         self.results.fc = self.erbFc
 
@@ -158,5 +171,5 @@ if __name__ == '__main__':
     y = Signals.sineMaker.makeSine(1000,0,1,20,m.kv['fs']) #it is crucial that both signals matlab/python have the same parameters (time is important)
     
     m._excitationPatern(y)
-    print(m.results.eLdB)
+    print(len(m.results.eLdB))
     

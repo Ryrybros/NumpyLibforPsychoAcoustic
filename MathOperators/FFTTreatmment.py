@@ -11,8 +11,10 @@ class FFTComputer :
                 
                 self.numBins = int(self.fftLen/(2+1))
                 self.compInt =   2*abs((self.spect[0 : self.numBins] ** 2)/ (self.numBins*fs) )#2*abs( ( (self.spect(1:self.numBins))**2)/(self.numBins*fs)  )
-                self.compFq = np.array([(2*self.numBins/fs)*i for i in range(int(fs/2))])# linspace(0,fs/2,numBins)
-                self.nPoints = self.compFq
+                self.compFq = np.linspace(0,fs/2,self.numBins) # np.array([(2*self.numBins/fs)*i for i in range(int(fs/2))])# linspace(0,fs/2,numBins)
+
+                print("compInt :  " ,len(self.compInt))
+                self.nPoints = len(self.compFq)
 
         return returned(earSig,fs)
     
