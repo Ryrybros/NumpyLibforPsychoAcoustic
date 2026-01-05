@@ -2,7 +2,7 @@ import numpy as np
 
 class ERB :
 
-    def f2erbrate(f : np.array, erbModel = "moore1983"):
+    def f2erbrate(f : np.array, erbModel = "glasberg1990"):
         
         model = erbModel
         
@@ -21,7 +21,7 @@ class ERB :
         
         return erbrate
         
-    def erbrate2f(erbrate: np.array, erbModel = 'moore1983' ):
+    def erbrate2f(erbrate: np.array, erbModel = 'glasberg1990' ):
         #performs reverse transform as f2erbrate
         model = erbModel
         

@@ -47,7 +47,7 @@ class model:
         self.OuterMiddle = dataPreparator.OuterMiddle(self.data,self.fVec,"1997",free)
 
         self._erbScale()
-        self._specLoud()
+        self.specLoudData = self._specLoud()
 
         self.fftValues = None
 
@@ -58,9 +58,9 @@ class model:
     def _erbScale(self):
         self.erbNMin = ERB.f2erbrate(self.kv["erbFcMin"])
         self.erbNMax = ERB.f2erbrate(self.kv["erbFcMax"])
-        
+        # print("erbMax : ", self.erbNMax)
         # self.erbN = np.array( [self.erbNMin + self.kv["erbStep"]*i for i in range(int((self.erbNMax - self.erbNMin)/self.kv["erbStep"]))] )#erbNMin:kv.erbStep:erbNMax    # numbers of erb bands
-        self.erbN = np.arange(self.erbNMin , self.erbNMax + self.kv["erbStep"], self.kv["erbStep"]  ) 
+        self.erbN = np.arange(self.erbNMin , self.erbNMax , self.kv["erbStep"]  ) 
         
         self.erbFc = ERB.erbrate2f(self.erbN)        # center frequency of erb bands
 
@@ -153,11 +153,38 @@ class model:
                 intensity = intensity  +  w  *  self.fftValues.compInt[comp] #intensity per erb
             
             eL[e] = intensity
-
+        self._eL = eL
         self.results.eLdB = 10*np.log10(eL / ( (20e-6)**2 ) ) # get dB SPL (20uPa reference)
         
         self.results.erbN = self.erbN
         self.results.fc = self.erbFc
+
+
+    def moore1997(self, earSig : np.array) :
+        self._excitationPatern(earSig)
+        specLoud = np.zeros(len(self._eL))
+        # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
+        specLoud1 = self.specLoudData.c *  ( (2*self._eL/( self._eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* self._eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?
+        specLoud2 = self.specLoudData.c * (  (self.specLoudData.g * self._eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
+        specLoud3 = self.specLoudData.c * ( self._eL/(1.04*(10**6)))**0.5 #% Eq. 9?
+        
+        specLoud[ self._eL < self.specLoudData.tQ ] = specLoud1[self._eL < self.specLoudData.tQ]
+        specLoud[ ( self._eL <= 10**10 ) & ( self._eL  > self.specLoudData.tQ )  ] = specLoud2[ (self._eL <= 10**10 ) & ( self._eL> self.specLoudData.tQ ) ]
+        specLoud[self._eL > 10**10] = specLoud3[self._eL > 10**10]# % end of Sec. 1.6 in the paper
+
+        monauralLoudness = sum(specLoud,2) * self.kv['erbStep'] #     % integrate over the erbs
+        
+        self.results.monauralLoudness = monauralLoudness #     % integrate over the erbs
+        self.results.specLoud = specLoud # % specific loudness
+
+        class modelresult : 
+            def __init__(self, specLoudness, monoLoudness):
+                self.specLoudness = specLoudness
+                self.monauralLoudness  = monoLoudness
+
+        return modelresult(specLoud, monauralLoudness)
+ 
+
 
 
 
@@ -173,6 +200,6 @@ if __name__ == '__main__':
     print( len(m.erbN))
     y = Signals.sineMaker.makeSine(1000,0,1,20,m.kv['fs']) #it is crucial that both signals matlab/python have the same parameters (time is important)
     
-    m._excitationPatern(y)
-    print(len(m.erbN))
+    res = m.moore1997(y)
+    print(res.specLoudness)
     
