@@ -51,12 +51,6 @@ class dataPreparator:
         dat.fOuter = fOuter
         dat.fMiddle = fMiddle
 
-        y = tfOuterInterp
-        # linspace = np.array([(1/(len(y) - 1 ))*i for i in range(len(y))])
-        # plt.plot(fVec, fVec)
-        # # plt.plot(fMiddle,tfMiddle)
-        # plt.show()
-        
         return dat
     
     def SpecLoudness(data : dict, fVec : np.array):

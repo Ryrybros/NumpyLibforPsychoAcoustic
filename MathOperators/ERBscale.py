@@ -2,13 +2,9 @@ import numpy as np
 
 class ERB :
 
-    def f2erbrate(f : np.array, *erbModel : str):
+    def f2erbrate(f : np.array, erbModel = "glasberg1990"):
         
-        if(len(erbModel) < 1):
-            model = 'moore1983'
-        else:
-            model = erbModel[0] 
-
+        model = erbModel
         
         match model :
             case 'moore1983':
@@ -25,18 +21,14 @@ class ERB :
         
         return erbrate
         
-    def erbrate2f(erbrate: np.array, *erbModel: str):
+    def erbrate2f(erbrate: np.array, erbModel = 'glasberg1990' ):
         #performs reverse transform as f2erbrate
-
-        if(len(erbModel) < 1):
-            model = 'moore1983'
-        else:
-            model = erbModel[0] 
-
+        model = erbModel
         
         match model :
                 case 'moore1983':
-                    f = (0.312 - (np.exp((erbrate - 43*np.ones(len(erbrate)) )/11.17)) * 14.675) / (np.exp((erbrate - 43*np.ones(len(erbrate)) )/11.17) - 1)
+                    f = (0.312 - (np.exp((np.array(erbrate) - 43)/11.17)) * 14.675) / (np.exp((np.array(erbrate) - 43)/11.17) - 1)
+                    # f = (0.312 - (np.exp((erbrate - 43*np.ones(len(erbrate)) )/11.17)) * 14.675) / (np.exp((erbrate - 43*np.ones(len(erbrate)) )/11.17) - 1)
                     f = f * 1000; 
                 case 'glasberg1990':
                         f = (10**(erbrate/21.366)-1)/4.368
@@ -44,40 +36,61 @@ class ERB :
                 case _:
                     Exception('Unknown model for the conversion.')
                     return
-            
+        # print("f of erbrate2f is : ", f)
         return f
-                
+    
+
+        
+
+    
+    def f2erb( f : float,
+               ERB_different_values  = False
+                   ):
+
+        if( ERB_different_values== False  ):
+            return 24.673*(0.004368*f + 1) 
+        else:
+            ERB_Q = 1000/(24.7*4.37) # 9.2645
+            
+            ERB_f = 1000/4.37 # 228.833
+
+        return (ERB_f + f) / ERB_Q
+        
+        
+        
         
 
 
         
 if __name__ == '__main__':
     
-    max = 1000
-    n = 100
-    x = np.array([(max/n)*i for i in range(n)])
-    try:
-        scale = ERB.f2erbrate(x,'glasberg1990')
-        f = ERB.erbrate2f(scale, 'glasberg1990')
+    # max = 1000
+    # n = 100
+    # x = np.array([(max/n)*i for i in range(n)])
+    # try:
+    #     scale = ERB.f2erbrate(x,'glasberg1990')
+    #     f = ERB.erbrate2f(scale, 'glasberg1990')
 
-    except :
-        print("ERROR : The model is likely not correct")
-        scale = x
+    # except :
+    #     print("ERROR : The model is likely not correct")
+    #     scale = x
 
-    try:
-        scale2 = ERB.f2erbrate(x,'moore1983')
-    except :
-        print("ERROR : The model is likely not correct")
-        scale2 = x
+    # try:
+    #     scale2 = ERB.f2erbrate(x,'moore1983')
+    # except :
+    #     print("ERROR : The model is likely not correct")
+    #     scale2 = x
 
     
-    import matplotlib.pyplot as plt
-    plt.plot(x,scale)
+    # import matplotlib.pyplot as plt
+    # plt.plot(x,scale)
     
-    # plt.plot(x,f)
+    # # plt.plot(x,f)
 
-    plt.plot(x,scale2)
+    # plt.plot(x,scale2)
 
 
 
-    plt.show()
+    # plt.show()
+
+    print(ERB.f2erb(0))

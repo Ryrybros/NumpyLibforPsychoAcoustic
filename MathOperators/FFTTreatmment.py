@@ -1,18 +1,21 @@
 import numpy as np
-
+import scipy.fft as fft
 class FFTComputer :
 
     def computeFFT(earSig : np.array, fs : float):
         class returned :
             def __init__(self, earSig : np.array, fs : float):
-                self.spect = np.fft.fft(earSig)
+                self.spect = fft.fft(earSig)
                 self.fftLen = len(self.spect)
+                print("fftlen : ", self.fftLen)
                 self.oneHz = (self.fftLen+2)/fs
                 
-                self.numBins = int(self.fftLen/(2+1))
+                self.numBins = int(self.fftLen/2 + 1)
                 self.compInt =   2*abs((self.spect[0 : self.numBins] ** 2)/ (self.numBins*fs) )#2*abs( ( (self.spect(1:self.numBins))**2)/(self.numBins*fs)  )
-                self.compFq = np.array([(2*self.numBins/fs)*i for i in range(int(fs/2))])# linspace(0,fs/2,numBins)
-                self.nPoints = self.compFq
+                self.compFq = np.linspace(0,fs/2,self.numBins) # np.array([(2*self.numBins/fs)*i for i in range(int(fs/2))])# linspace(0,fs/2,numBins)
+
+                # print("compInt :  " ,len(self.compInt))
+                self.nPoints = len(self.compFq)
 
         return returned(earSig,fs)
     
@@ -36,4 +39,4 @@ if __name__ == '__main__':
     # plt.plot(f, troncRes)
     # plt.show()
 
-    print("compFq is : " , res.compFq)
+    # print("compFq is : " , res.compFq)

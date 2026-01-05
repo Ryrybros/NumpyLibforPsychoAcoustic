@@ -9,6 +9,8 @@ class Interpolator:
         return np.interp(x, xp, fp)
     
 
+    
+
 
 if __name__ == '__main__':
     n = 100
