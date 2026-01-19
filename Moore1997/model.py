@@ -147,8 +147,6 @@ class model:
                 
                 g = abs(g)
                 w = (1+p*g)*np.exp(-p*g)
-                if( (p*g >  10**10 )):
-                    w = 10**(-10)
                 
                 intensity = intensity  +  w  *  self.fftValues.compInt[comp] #intensity per erb
             
@@ -164,7 +162,7 @@ class model:
         self._excitationPatern(earSig)
         specLoud = np.zeros(len(self._eL))
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
-        specLoud1 = self.specLoudData.c *  ( (2*self._eL/( self._eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* self._eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?
+        specLoud1 = self.specLoudData.c *  ( (2*self._eL/( self._eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* self._eL  + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?
         specLoud2 = self.specLoudData.c * (  (self.specLoudData.g * self._eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
         specLoud3 = self.specLoudData.c * ( self._eL/(1.04*(10**6)))**0.5 #% Eq. 9?
         

@@ -25,7 +25,7 @@ if __name__ == '__main__':
     data = jsonHandler.readJson("data/Glasberg2002.json")
     assert(data["OuterMiddleEar1997"]["fOuter"][0] == 20)
     for i in range(len(data["alpha"] )) :
-        data['alpha'][i] *= (10**6)
+        data['alpha'][i] *= (0.1)
     print(data['alpha'])
     # jsonHandler.writeJson("data/Glasberg2002.json", data)
             
