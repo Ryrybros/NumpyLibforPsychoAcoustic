@@ -151,8 +151,10 @@ class model:
                 intensity = intensity  +  w  *  self.fftValues.compInt[comp] #intensity per erb
             
             eL[e] = intensity
-        self._eL = eL
-        self.results.eLdB = 10*np.log10(eL / ( (20e-6)**2 ) ) # get dB SPL (20uPa reference)
+        
+        E0 = (20e-6)**2
+        self._eL = eL 
+        self.results.eLdB = 10*np.log10( self._eL / E0) # get dB SPL (20uPa reference)
         
         self.results.erbN = self.erbN
         self.results.fc = self.erbFc
