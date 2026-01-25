@@ -153,14 +153,16 @@ class model:
             eL[e] = intensity
         
         E0 = (20e-6)**2
-        self._eL = eL 
-        self.results.eLdB = 10*np.log10( self._eL / E0) # get dB SPL (20uPa reference)
+        self._eL = eL / E0
+        self.results.eLdB = 10*np.log10( self._eL ) # get dB SPL (20uPa reference)
         
         self.results.erbN = self.erbN
         self.results.fc = self.erbFc
 
+    
 
-    def moore1997(self, earSig : np.array) :
+    def moore1997(self, earSig : np.array, EtQ = False) :
+        
         self._excitationPatern(earSig)
         specLoud = np.zeros(len(self._eL))
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
