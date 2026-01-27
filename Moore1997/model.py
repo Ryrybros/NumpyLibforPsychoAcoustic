@@ -86,7 +86,7 @@ class model:
 
     #_____________________________________________END OF PRETREATMENT_____________________________________________
 
-    def _excitationPatern(self, earSig : np.array):
+    def _excitationPatern(self, earSig : np.array, e0):
         #calculate intensity for each ERB (dB/ERB)
         #Use it after Pretreatment
 
@@ -152,7 +152,10 @@ class model:
             
             eL[e] = intensity
         
-        E0 = (20e-6)**2
+        if e0 == None:
+            E0 = (20e-6)**2
+        else:
+            E0 = e0
         self._eL = eL / E0
         self.results.eLdB = 10*np.log10( self._eL ) # get dB SPL (20uPa reference)
         
@@ -161,9 +164,9 @@ class model:
 
     
 
-    def moore1997(self, earSig : np.array, EtQ = False) :
+    def moore1997(self, earSig : np.array, EtQ = None) :
         
-        self._excitationPatern(earSig)
+        self._excitationPatern(earSig, EtQ)
         specLoud = np.zeros(len(self._eL))
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
         specLoud1 = self.specLoudData.c *  ( (2*self._eL/( self._eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* self._eL  + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?

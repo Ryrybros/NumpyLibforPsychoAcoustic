@@ -2,6 +2,8 @@ import numpy as np
 import scipy.fft as fft
 class FFTComputer :
 
+    #This class computes FFT according to the computation used in Moore1997
+
     def computeFFT(earSig : np.array, fs : float):
         class returned :
             def __init__(self, earSig : np.array, fs : float):

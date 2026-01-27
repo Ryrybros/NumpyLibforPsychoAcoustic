@@ -2,6 +2,8 @@ import numpy as np
 
 class ERB :
 
+    # This class has all static methods that are used in the model that are realted to ERB scales, the names match the amt-toolbox names
+
     def f2erbrate(f : np.array, erbModel = "glasberg1990"):
         
         model = erbModel
