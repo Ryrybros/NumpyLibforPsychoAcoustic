@@ -12,7 +12,7 @@ class sineMaker:
         if(dB != 0):
             sine = ((20*(10**(-6)))*(10 ** (abs(dB)/20)))*np.sin((2*np.pi*f)*x + phase)
         else:
-            sine = ((10^(-3 - 17/20)))*np.sin((2*np.pi*f)*x + phase)
+            sine = (20*(10**(-6))) *np.sin((2*np.pi*f)*x + phase)
 
         return sine
     

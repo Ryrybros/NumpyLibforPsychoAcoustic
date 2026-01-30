@@ -9,7 +9,7 @@ class FFTComputer :
             def __init__(self, earSig : np.array, fs : float):
                 self.spect = fft.fft(earSig)
                 self.fftLen = len(self.spect)
-                print("fftlen : ", self.fftLen)
+                
                 self.oneHz = (self.fftLen+2)/fs
                 
                 self.numBins = int(self.fftLen/2 + 1)
