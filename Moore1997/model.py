@@ -86,7 +86,7 @@ class model:
 
     #_____________________________________________END OF PRETREATMENT_____________________________________________
 
-    def _excitationPatern(self, earSig : np.array, e0):
+    def _excitationPatern(self, earSig : np.array):
         #calculate intensity for each ERB (dB/ERB)
         #Use it after Pretreatment
 
@@ -152,11 +152,11 @@ class model:
             
             eL[e] = intensity
         
-        if e0 == None:
-            E0 = (20e-6)**2
-        else:
-            E0 = e0
+        
+        E0 = (20e-6)**2
+
         self._eL = eL / E0
+
         self.results.eLdB = 10*np.log10( self._eL ) # get dB SPL (20uPa reference)
         
         self.results.erbN = self.erbN
@@ -164,9 +164,9 @@ class model:
 
     
 
-    def moore1997(self, earSig : np.array, EtQ = None) :
+    def moore1997(self, earSig : np.array) :
         
-        self._excitationPatern(earSig, EtQ)
+        self._excitationPatern(earSig)
         specLoud = np.zeros(len(self._eL))
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
         specLoud1 = self.specLoudData.c *  ( (2*self._eL/( self._eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* self._eL  + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?
@@ -177,7 +177,7 @@ class model:
         specLoud[ ( self._eL <= 10**10 ) & ( self._eL  > self.specLoudData.tQ )  ] = specLoud2[ (self._eL <= 10**10 ) & ( self._eL> self.specLoudData.tQ ) ]
         specLoud[self._eL > 10**10] = specLoud3[self._eL > 10**10]# % end of Sec. 1.6 in the paper
 
-        monauralLoudness = sum(specLoud,2) * self.kv['erbStep'] #     % integrate over the erbs
+        monauralLoudness = sum(specLoud) * self.kv['erbStep'] #     % integrate over the erbs
         
         self.results.monauralLoudness = monauralLoudness #     % integrate over the erbs
         self.results.specLoud = specLoud # % specific loudness
