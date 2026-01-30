@@ -61,30 +61,18 @@ def fig12Plot(freq : float):
     
     fig, ax3 = plt.subplots(figsize=(7, 6))
 
-    # X = 20 * np.log10(np.linspace(20e-6 , 120, 30) / (20e-6)) 
-    X = np.linspace(20e-6, 120, 2)
-    # X = np.arange(0, 121, 2)
+    X = np.linspace(20e-6, 120, 30)
+
     Y = []
     start_time = time.time()
     i = 0
-    p0 = 20e-6
+    
     for x in X:
-        p = p0 * 10**(x / 20)  
-        # Start timer
+        y = sineMaker.makeSine(freq, 0, 2, x, mod.kv['fs'])
         
-        # y = sineMaker.makeSine(freq, 0, 2, p, mod.kv['fs'])
-        # rms = np.sqrt(np.mean(y**2))
-        # print(f"L = {x} dB | RMS = {rms:.3e}")
-        t = np.arange(0, 2, 1/mod.kv['fs'])
-        
-        y = p * np.sin(2 * np.pi * freq * t)
-        rms = np.sqrt(np.mean(y**2))
-        print(f"L = {x} dB | RMS = {rms:.3e}")
         res = mod.moore1997(y)
         
-        #The x axis is in dB
-        
-        Y.append(2* res.monauralLoudness )
+        Y.append(2*res.monauralLoudness )
         i += 1 
         print(f"{i} / {len(X)} done")
 
@@ -97,18 +85,16 @@ def fig12Plot(freq : float):
 
     ax3.semilogy(X, np.array(Y), color='black', linewidth=1.2)
     
-    ax3.set_xlabel('Excitation level, dB SPL')
+    ax3.set_xlabel('Level, dB SPL')
     ax3.set_ylabel("Loudness  (log scale)")
-    # ax3.set_ylim(0.005, 50)
-    # ax3.set_xlim(0, 110)
+    ax3.set_ylim(0.001, 500)
+    ax3.set_xlim(0, 120)
     
-    # ax3.yaxis.set_major_formatter(plt.ScalarFormatter())
+    ax3.yaxis.set_major_formatter(plt.ScalarFormatter())
     ax3.set_yticks([0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50,100,200,500])
     
     ax3.grid(True, which='both', linestyle='--', alpha=0.5)
     plt.show()
-
-
 
 def eLdBplot( ):
     mod = model(True)
@@ -128,5 +114,7 @@ def eLdBplot( ):
     plt.show()
 
 if __name__ == '__main__' :
-    fig12Plot(1000)
+    # eLdBplot()
+    fig8Plot(105)
+    # fig12Plot(1000)
     
