@@ -1,11 +1,19 @@
 
 import numpy as np
+import scipy.interpolate as I
 class Interpolator:
 
+    #This class is just a wrapper for numpy and scipy interpolators
 
-    def interp1(x : np.array, xp : np.array , fp : np.array):
+    def interp1(x : np.array, xp : np.array , fp : np.array,pchip = False):
         #Need to check if this is the right interpolation
+        
         assert(len(xp) == len(fp)  )
+
+        if(pchip):
+            pch = I.PchipInterpolator(xp,fp)
+            return pch(x)
+        
         return np.interp(x, xp, fp)
     
 

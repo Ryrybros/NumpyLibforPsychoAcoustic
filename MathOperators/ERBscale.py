@@ -2,6 +2,8 @@ import numpy as np
 
 class ERB :
 
+    # This class has all static methods that are used in the model that are realted to ERB scales, the names match the amt-toolbox names
+
     def f2erbrate(f : np.array, erbModel = "glasberg1990"):
         
         model = erbModel
@@ -64,33 +66,33 @@ class ERB :
         
 if __name__ == '__main__':
     
-    # max = 1000
-    # n = 100
-    # x = np.array([(max/n)*i for i in range(n)])
-    # try:
-    #     scale = ERB.f2erbrate(x,'glasberg1990')
-    #     f = ERB.erbrate2f(scale, 'glasberg1990')
+    max = 1000
+    n = 100
+    x = np.array([(max/n)*i for i in range(n)])
+    try:
+        scale = ERB.f2erbrate(x,'glasberg1990')
+        f = ERB.erbrate2f(scale, 'glasberg1990')
 
-    # except :
-    #     print("ERROR : The model is likely not correct")
-    #     scale = x
+    except :
+        print("ERROR : The model is likely not correct")
+        scale = x
 
-    # try:
-    #     scale2 = ERB.f2erbrate(x,'moore1983')
-    # except :
-    #     print("ERROR : The model is likely not correct")
-    #     scale2 = x
+    try:
+        scale2 = ERB.f2erbrate(x,'moore1983')
+    except :
+        print("ERROR : The model is likely not correct")
+        scale2 = x
 
     
-    # import matplotlib.pyplot as plt
-    # plt.plot(x,scale)
+    import matplotlib.pyplot as plt
+    plt.plot(x,scale)
     
-    # # plt.plot(x,f)
+    # plt.plot(x,f)
 
-    # plt.plot(x,scale2)
+    plt.plot(x,scale2)
 
 
 
-    # plt.show()
+    plt.show()
 
     print(ERB.f2erb(0))

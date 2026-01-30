@@ -2,12 +2,14 @@ import numpy as np
 import scipy.fft as fft
 class FFTComputer :
 
+    #This class computes FFT according to the computation used in Moore1997
+
     def computeFFT(earSig : np.array, fs : float):
         class returned :
             def __init__(self, earSig : np.array, fs : float):
                 self.spect = fft.fft(earSig)
                 self.fftLen = len(self.spect)
-                print("fftlen : ", self.fftLen)
+                
                 self.oneHz = (self.fftLen+2)/fs
                 
                 self.numBins = int(self.fftLen/2 + 1)

@@ -86,7 +86,7 @@ class model:
 
     #_____________________________________________END OF PRETREATMENT_____________________________________________
 
-    def _excitationPatern(self, earSig : np.array):
+    def _excitationPatern(self, earSig : np.array, e0):
         #calculate intensity for each ERB (dB/ERB)
         #Use it after Pretreatment
 
@@ -147,24 +147,29 @@ class model:
                 
                 g = abs(g)
                 w = (1+p*g)*np.exp(-p*g)
-                if( (p*g >  10**10 )):
-                    w = 10**(-10)
                 
                 intensity = intensity  +  w  *  self.fftValues.compInt[comp] #intensity per erb
             
             eL[e] = intensity
-        self._eL = eL
-        self.results.eLdB = 10*np.log10(eL / ( (20e-6)**2 ) ) # get dB SPL (20uPa reference)
+        
+        if e0 == None:
+            E0 = (20e-6)**2
+        else:
+            E0 = e0
+        self._eL = eL / E0
+        self.results.eLdB = 10*np.log10( self._eL ) # get dB SPL (20uPa reference)
         
         self.results.erbN = self.erbN
         self.results.fc = self.erbFc
 
+    
 
-    def moore1997(self, earSig : np.array) :
-        self._excitationPatern(earSig)
+    def moore1997(self, earSig : np.array, EtQ = None) :
+        
+        self._excitationPatern(earSig, EtQ)
         specLoud = np.zeros(len(self._eL))
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
-        specLoud1 = self.specLoudData.c *  ( (2*self._eL/( self._eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* self._eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?
+        specLoud1 = self.specLoudData.c *  ( (2*self._eL/( self._eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* self._eL  + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?
         specLoud2 = self.specLoudData.c * (  (self.specLoudData.g * self._eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
         specLoud3 = self.specLoudData.c * ( self._eL/(1.04*(10**6)))**0.5 #% Eq. 9?
         

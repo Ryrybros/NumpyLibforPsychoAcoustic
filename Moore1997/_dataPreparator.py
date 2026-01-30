@@ -34,13 +34,13 @@ class dataPreparator:
         fOuter = np.array(data[dataModel]["fOuter"])
         tfOuter = np.array(data[dataModel][f"tfOuter{regim}"])
 
-        tfOuterInterp = Interp.interp1(fVec,fOuter, tfOuter) #None Pchip interpolation, this is linear, pchip is cubic
+        tfOuterInterp = Interp.interp1(fVec,fOuter, tfOuter, pchip= True) #None Pchip interpolation, this is linear, pchip is cubic
         
         fMiddle = np.array(data[dataModel]["fMiddle"])
         tfMiddle= np.array(data[dataModel]["tfMiddle"])
         # print(tfMiddle)
 
-        tfMiddleInterp = Interp.interp1(fVec,fMiddle, tfMiddle) #None Pchip interpolation, this is linear, pchip is cubic
+        tfMiddleInterp = Interp.interp1(fVec,fMiddle, tfMiddle,pchip= True) #None Pchip interpolation, this is linear, pchip is cubic
         
 
         dat = ReturnedData()
@@ -66,26 +66,27 @@ class dataPreparator:
         fRef = data["fRef"]
         # print(fRef)
         tQ = data["tQ"]
+        dat.tQ = Interp.interp1(fVec, fRef,tQ,pchip=True)
+        dat.tQ[ : len(dat.tQ) - 1 ] = dat.tQ[ 1 : ] 
 
-        dat.tQ = Interp.interp1(fVec, fRef,tQ)
         dat.tQ500 = tQ[11]
-        
         dat.g = dat.tQ500-dat.tQ    # low level gain in cochlea amplifier
-
+        
         # linearization parameter a
-        g = data["g"]
-        # print(g)
-
-        a = data["a"]
-
-        dat.a = Interp.interp1(dat.g, g, a) #Again, none pchip
-
+        g = np.array(data["g"])
+        
+        
+        a = np.array(data["a"])
+        
+        dat.a =  - Interp.interp1(dat.g,  -g, -a, pchip=True )  #Again, none pchip  !! we use - g and- a because it is necessary to have an increasing array for the second argumetn
+        
         #  compressive exponent alpha
         g = np.array(data["gCompression"])
 
-        alpha = data["alpha"]
+        alpha = np.array(data["alpha"])
 
-        dat.alpha = Interp.interp1(dat.g,g, alpha)
+
+        dat.alpha =  Interp.interp1(dat.g,g,alpha, pchip= True)
 
         dat.c = data["c"]
 
