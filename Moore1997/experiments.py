@@ -23,7 +23,9 @@ def fig8Plot(dBLevel : float):
         f = target_freq[i]
         
         y = sineMaker.makeSine(f, 0, 5, dBLevel, mod.kv['fs'])
-        res = mod.moore1997(y)
+        # y += sineMaker.makeSine(f, 0, 5, dBLevel/10, mod.kv['fs'])
+
+        res = mod.moore1997(y,target_tQdB[i])
         
         #The x axis is in dB
         X = 10 * np.log10(mod._eL) 

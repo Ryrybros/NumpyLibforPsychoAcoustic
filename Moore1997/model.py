@@ -1,5 +1,6 @@
 from collections import defaultdict
 from Moore1997._dataPreparator import dataPreparator
+from Moore1997.Filter import FilterComputer
 from filetools.jsonHandler import jsonHandler
 from MathOperators.ERBscale import ERB
 from MathOperators.Interpolator import Interpolator
@@ -86,12 +87,14 @@ class model:
 
     #_____________________________________________END OF PRETREATMENT_____________________________________________
 
-    def _excitationPatern(self, earSig : np.array):
+    def _excitationPatern(self, earSig : np.array,e0 = None):
         #calculate intensity for each ERB (dB/ERB)
         #Use it after Pretreatment
-
-        self.fftValues = FFTTreatmment.FFTComputer.computeFFT(earSig = earSig , fs= self.kv['fs'])
-
+        filter = FilterComputer(self.kv, "1997", True)
+        sig = filter.FIR(earSig)
+        self.sigtest = sig 
+        self.fftValues = FFTTreatmment.FFTComputer.computeFFT(earSig = sig , fs= self.kv['fs'])
+         
         erbInt = np.zeros(len(self.erbFc))
 
         for i in range(len(self.erbFc) ) :
@@ -100,23 +103,26 @@ class model:
             hiValue = round(self.erbHiFreq[i]*self.fftValues.oneHz)
             # print("hi Val : " ,hiValue)
 
-            erbRange = np.linspace( loValue ,hiValue, hiValue - loValue  , dtype= int)
+            # erbRange = np.linspace( loValue ,hiValue, hiValue - loValue  , dtype= int)
             # print(type(int(erbRange[0])))
-            sumList =  np.zeros(len(erbRange)) 
-            # print("erbRange ", len(erbRange) )
-            j = 0
-            for index in  erbRange :
-                # i = int( index )
-                # print(type(i) )
-                
-                if(index < len(self.fftValues.compInt)):
-                    sumList[j] = self.fftValues.compInt[ index ]   # intensity in each erb
-                else:
-                    if((index == max(erbRange)) & ( i >= len(self.erbFc) - 1 ) ):
-                        print("Warning !! Offset between erbRange and length of compInt ,\n maximum offset is : ", index - len(self.fftValues.compInt), ".\n")
-                j += 1
 
-            erbInt[i] = sumList.sum()   # intensity sum in each erb
+            erbInt[i] = np.sum(self.fftValues.compInt[loValue : hiValue + 1])
+
+            # sumList =  np.zeros(len(erbRange)) 
+            # # print("erbRange ", len(erbRange) )
+            # j = 0
+            # for index in  erbRange :
+            #     # i = int( index )
+            #     # print(type(i) )
+                
+            #     if(index < len(self.fftValues.compInt)):
+            #         sumList[j] = self.fftValues.compInt[ index ]   # intensity in each erb
+            #     else:
+            #         if((index == max(erbRange)) & ( i >= len(self.erbFc) - 1 ) ):
+            #             print("Warning !! Offset between erbRange and length of compInt ,\n maximum offset is : ", index - len(self.fftValues.compInt), ".\n")
+            #     j += 1
+
+            # erbInt[i] = sumList.sum()   # intensity sum in each erb
         
 
         erbdB = 10*np.log10(erbInt/ ( (20e-6)**2 ))   # intensity level in each erb using reference SPL of 20 uPa
@@ -131,7 +137,7 @@ class model:
         #for ind in range(len(self.erbFc)):
 
         erbdB2F = np.interp(x= self.fftValues.compFq, xp = np.concatenate( ( [0],self.erbFc,[self.kv['fs']/2] ) ) , fp = np.concatenate( ( [min(erbdB) ], erbdB , [min(erbdB)] ) ) ) # map erbFc to compFq
-
+        self.test = erbdB2F 
         eL = np.zeros(len(self.erbN))
         
         for e in range( len(self.erbN) ) :
@@ -152,19 +158,19 @@ class model:
             
             eL[e] = intensity
         
-        
-        E0 = (20e-6)**2
+        if(e0 != None) : E0 = e0
+        else: E0 = (20e-6)**2 
 
         self._eL = eL / E0
-
-        self.results.eLdB = 10*np.log10( self._eL ) # get dB SPL (20uPa reference)
+        
+        self.results.eLdB = 10*np.log10( self._eL  ) # get dB SPL (20uPa reference)
         
         self.results.erbN = self.erbN
         self.results.fc = self.erbFc
 
     
 
-    def moore1997(self, earSig : np.array) :
+    def moore1997(self, earSig : np.array, e0 = None) :
         
         self._excitationPatern(earSig)
         specLoud = np.zeros(len(self._eL))

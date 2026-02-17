@@ -1,7 +1,7 @@
 
 from filetools.jsonHandler import jsonHandler
 from Moore1997._dataPreparator import dataPreparator
-import Moore1997.model as test
+
 from scipy import signal
 from MathOperators.Signals import sineMaker
     
@@ -58,8 +58,8 @@ class FilterComputer :
 
 if __name__ == '__main__':
     
-    m = test.model(True)
-    kv = m.kv
+    # m = test.model(True)
+    # kv = m.kv
     # # f = FilterComputer()
     # y = sineMaker.makeSine(1000,0,0.1,40,49000)
     # y += sineMaker.makeSine(780,10,0.1,40,49000)
