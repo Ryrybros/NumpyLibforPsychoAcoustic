@@ -116,7 +116,7 @@ def eLdBplot( ):
     plt.show()
 
 if __name__ == '__main__' :
-    # eLdBplot()
+    eLdBplot()
     fig8Plot(105)
-    # fig12Plot(1000)
+    fig12Plot(1000)
     
