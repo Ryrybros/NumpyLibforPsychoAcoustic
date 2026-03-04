@@ -37,7 +37,8 @@ class model:
         #Glasberg
         "timeStep": 0.001,
         "hannLenMs": [ 2 , 4 , 8 , 16 , 32 , 64 ],
-        "fftLen": 2048
+        "fftLen": 2048,
+        "vLimitingIndices" :  [ 4050   , 2540,   1250,    500   ,  80 ]
         }
         kv = defaultdict(float)
         
@@ -276,39 +277,72 @@ class model:
         block_indices = np.arange(numBlocks)
         lower_bounds = block_indices * self.updateRate
 
-        # 2. Pre-calculate all Hann windows and store in a list
-        # This replaces hannWin2, hannWin4, etc.
-        hann_wins = [win.hann(int(length)) for length in self.hannLenSmp]
+        # Pre-calculate all Hann windows and store in a list
+        
+        hannWins = [win.hann(int(length)) for length in self.hannLenSmp]
 
-        # 3. Process each window size
+        # Process each window size
         # We store the results in a list of matrices
         spectra = []
         
         for i, win_len in enumerate(self.hannLenSmp):
             win_len = int(win_len)
             
-            # Create a 2D matrix of indices: (numBlocks, win_len)
-            # Every row starts at 'lower' and spans 'win_len' samples
+            # Create a 2D matrix : (numBlocks, win_len)
+            
             offsets = np.arange(win_len)
             idx_matrix = lower_bounds[:, np.newaxis] + offsets
             
-            # Extract all blocks at once, apply the Hann window, and FFT
-            # earSigPad[idx_matrix] is (numBlocks, win_len)
-            # hann_wins[i] is (win_len,) -> broadcasts across rows
-            segments = earSigPad[idx_matrix.astype(int)] * hann_wins[i]
             
-            # Compute FFT for all blocks simultaneously along the rows (axis=1)
-            # Result is a matrix of shape (numBlocks, fftLen)
+            segments = earSigPad[idx_matrix.astype(int)] * hannWins[i]
+            
+            
+            # Result is a (numBlocks, fftLen)
             res_fft = np.fft.fft(segments, n=self.kv["fftLen"], axis=1)
             spectra.append(res_fft)
-        s = np.abs(spectra)
+        spectList = np.abs(spectra)
+
+        # oneHz = (self.kv["fftLen"] + 2) / self.kv["fs"]
+
+        # spect = np.zeros(( int( numBlocks ) ,int( self.kv["fftLen"]  / 2 ) + 1 ))
         
-        return s
+        # start = int(np.round(self.kv["vLimitingIndices"][0] * oneHz))
+        # end = int(self.kv["fftLen"] // 2) + 1
+        # spect[:, start :end ] = np.abs(spectList[0][:, start:end])**2 / np.sum(hannWins[0]**2)
+        # # spect[:,np.round( np.arange(  np.round( self.kv["vLimitingIndices"][0]*oneHz  + 1 , self.kv["fftLen"] / 2 + 1 )  ) )  ] = abs(spectList[0][:,np.round(np.arange( np.round( self.kv["vLimitingIndices"][0]*oneHz + 1 ) , self.kv["fftLen"] / 2+1  ) ) ] )**2 /np.sum( hannWins[0]**2)
+        # print(spect)
+
+
+                # 1. Setup boundaries
+        half_fft = int(self.kv["fftLen"] // 2)
+        oneHz = (self.kv["fftLen"] + 2) / self.kv["fs"]
+
+        # Create a full set of indices: [Nyquist, 4050, 2540, 1250, 500, 80, 0]
+        # Note: we reverse them or order them to match the spectra list indices (0 to 5)
+        boundaries = np.round(np.array(self.kv["vLimitingIndices"]) * oneHz).astype(int)
+        all_lims = np.concatenate(([half_fft + 1], boundaries, [0]))
+
+        # 2. Vectorized Loop for Stitching
+        spect = np.zeros((int(numBlocks), half_fft + 1))
+
+        # spectra[0] corresponds to the range all_lims[0] to all_lims[1], etc.
+        for i in range(6):
+            start, end = all_lims[i+1], all_lims[i]
+            # Calculate normalization factor (sum of squares of current Hann window)
+            norm_factor = np.sum(hannWins[i]**2)
+            
+            # Assign the frequency slice across all time blocks
+            spect[:, start:end] = np.abs(spectra[i][:, start:end])**2 / norm_factor
+
+        # 3. Final Calculations
+        compInt = 2 * spect / self.kv["fs"]
+        compFq = np.linspace(0, self.kv["fs"] / 2, half_fft + 1)
+
+        print(compInt)
+        return compInt
         #____
 
         
-
-
 
 
 
@@ -319,7 +353,7 @@ class model:
 if __name__ == '__main__':
     
     m = model(free = True,**{"fhigh" : 25})
-    m.glasberg2002(np.linspace(1000, 1500, 1000))
+    m.glasbergSpect(np.linspace(1000, 1500, 1000))
     # # print(m.erbN)
     # import matplotlib.pyplot as plt
     # print( int(2000/len(m.erbN)) )
