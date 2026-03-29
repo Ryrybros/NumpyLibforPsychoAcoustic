@@ -6,16 +6,18 @@ class FFTComputer :
 
     def computeFFT(earSig : np.array, fs : float):
         class returned :
-            def __init__(self, earSig : np.array, fs : float):
+            def __init__(self, earSig : np.array, fs : float ):
+                
                 self.spect = fft.fft(earSig)
                 self.fftLen = len(self.spect)
                 
                 self.oneHz = (self.fftLen+2)/fs
                 
                 self.numBins = int(self.fftLen/2 + 1)
+            
                 self.compInt =   2*abs((self.spect[0 : self.numBins] ** 2)/ (self.numBins*fs) )#2*abs( ( (self.spect(1:self.numBins))**2)/(self.numBins*fs)  )
                 self.compFq = np.linspace(0,fs/2,self.numBins) # np.array([(2*self.numBins/fs)*i for i in range(int(fs/2))])# linspace(0,fs/2,numBins)
-
+            
                 # print("compInt :  " ,len(self.compInt))
                 self.nPoints = len(self.compFq)
 

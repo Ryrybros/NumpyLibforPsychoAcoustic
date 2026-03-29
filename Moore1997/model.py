@@ -12,6 +12,8 @@ import scipy.fft as fft
 import numpy as np
 import time 
 import math
+
+import matplotlib.pyplot as plt
 class Result:
 
     def __init__(self):
@@ -126,16 +128,16 @@ class model:
     #_____________________________________________END OF PRETREATMENT_____________________________________________
 
 
-
-    #__________________________________________Moore model__________________________________________________
-    def _excitationPatern(self, earSig : np.array,e0 = None):
+    def stationnarySpect(self, earSig : np.array , stationnary = True):
         #calculate intensity for each ERB (dB/ERB)
         #Use it after Pretreatment
         filter = FilterComputer(self.kv, "1997", True)
         sig = filter.FIR(earSig)
-        self.sigtest = sig 
+        #COmpint, COmpFq computation
         self.fftValues = FFTTreatmment.FFTComputer.computeFFT(earSig = sig , fs= self.kv['fs'])
-        t = time.time()
+       
+    def getEL(self, compInt, compFq):
+        
          
         erbInt = np.zeros(len(self.erbFc))
         
@@ -144,45 +146,19 @@ class model:
             loValue = round(self.erbLoFreq[i]*self.fftValues.oneHz)
             hiValue = round(self.erbHiFreq[i]*self.fftValues.oneHz)
 
-            erbInt[i] = np.sum(self.fftValues.compInt[loValue : hiValue + 1])
-                
+            erbInt[i] = np.sum(compInt[loValue : hiValue + 1])
         
         
         
-
-
         erbdB = 10*np.log10(erbInt/ ( (20e-6)**2 ))   # intensity level in each erb using reference SPL of 20 uPa
         p511 = 4*1000/ERB.f2erb(1000)    # p for fc=1kHz and a level of 51dB (at 1kHz filters are symmetrical)
         
         erbdB2F = np.zeros(len(self.erbFc))
 
-        erbdB2F = np.interp(x= self.fftValues.compFq, xp = np.concatenate( ( [0],self.erbFc,[self.kv['fs']/2] ) ) , fp = np.concatenate( ( [min(erbdB) ], erbdB , [min(erbdB)] ) ) ) # map erbFc to compFq
+        erbdB2F = np.interp(x= compFq, xp = np.concatenate( ( [0],self.erbFc,[self.kv['fs']/2] ) ) , fp = np.concatenate( ( [min(erbdB) ], erbdB , [min(erbdB)] ) ) ) # map erbFc to compFq
         self.test = erbdB2F 
 
         t = time.time()
-
-
-        # eL = np.zeros(len(self.erbN))
-        
-        # for e in range( len(self.erbN) ) :
-        #     erb = ERB.f2erb(self.erbFc[e])
-        #     p51 = 4*self.erbFc[e]/erb
-        #     intensity = 0
-        #     for comp in range (self.fftValues.nPoints ) :
-        #         g = (self.fftValues.compFq[comp]-self.erbFc[e])/self.erbFc[e]
-        #         if g<0 :
-        #             p = p51 - 0.35*(p51/p511) * (erbdB2F[comp] - 51)
-        #         else :
-        #             p = p51
-                
-        #         g = abs(g)
-        #         w = (1+p*g)*np.exp(-p*g)
-                
-        #         intensity = intensity  +  w  *  self.fftValues.compInt[comp] #intensity per erb
-            
-        #     eL[e] = intensity
-        
-        
         print("-----------------double loop-------------------",)
         print("time loop : " , time.time() - t)
 
@@ -196,8 +172,8 @@ class model:
         p51 = 4 * self.erbFc / erb
 
         fc = self.erbFc[:, np.newaxis]
-        fq = self.fftValues.compFq[np.newaxis, :]
-        int_vals = self.fftValues.compInt[np.newaxis, :]
+        fq = compFq[np.newaxis, :]
+        int_vals = compInt[np.newaxis, :]
 
         g_raw = (fq - fc) / fc
 
@@ -213,22 +189,27 @@ class model:
 
         eL = np.sum(w * int_vals, axis=1)
 
+        return eL
 
+        
+
+    #__________________________________________Moore model__________________________________________________
+    def _excitationPatern(self ,e0 = None):
+                
+        eL = self.getEL( self.fftValues.compInt, self.fftValues.compFq )
 
     
         print("-----------------double loop-------------------",len(eL))
-        print("time vector : " , time.time() - t)
-        # print(max(eL2 - eL) )
-        # eL = eL2
-
-
+        # print("time vector : " , time.time() - t)
+   
 
         #______________________________end of test____________________________________________
 
         if(e0 != None) : E0 = e0
         else: E0 = (20e-6)**2 
-
+    
         self._eL = eL / E0
+        print("_eL")
         
         self.results.eLdB = 10*np.log10( self._eL  ) # get dB SPL (20uPa reference)
         
@@ -237,12 +218,11 @@ class model:
 
     
 
-    def moore1997(self, earSig : np.array,e0 = None) :
-        
+    def specLoudness(self) :
         
 
-        self._excitationPatern(earSig)
         specLoud = np.zeros(len(self._eL))
+        
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
         specLoud1 = self.specLoudData.c *  ( (2*self._eL/( self._eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* self._eL  + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?
         specLoud2 = self.specLoudData.c * (  (self.specLoudData.g * self._eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
@@ -264,6 +244,13 @@ class model:
 
         return modelresult(specLoud, monauralLoudness)
     
+    def moore1997(self, earSig : np.array,e0 = None):
+        self.stationnarySpect(earSig)
+        self._excitationPatern( e0= e0)
+        print("done")
+        self.res = self.specLoudness()
+        print("end moore")
+        
 
 
     def glasbergSpect(self, earSig : np.array ):
@@ -284,6 +271,8 @@ class model:
         # Process each window size
         # We store the results in a list of matrices
         spectra = []
+
+        
         
         for i, win_len in enumerate(self.hannLenSmp):
             win_len = int(win_len)
@@ -301,16 +290,8 @@ class model:
             res_fft = np.fft.fft(segments, n=self.kv["fftLen"], axis=1)
             spectra.append(res_fft)
         spectList = np.abs(spectra)
-
-        # oneHz = (self.kv["fftLen"] + 2) / self.kv["fs"]
-
-        # spect = np.zeros(( int( numBlocks ) ,int( self.kv["fftLen"]  / 2 ) + 1 ))
         
-        # start = int(np.round(self.kv["vLimitingIndices"][0] * oneHz))
-        # end = int(self.kv["fftLen"] // 2) + 1
-        # spect[:, start :end ] = np.abs(spectList[0][:, start:end])**2 / np.sum(hannWins[0]**2)
-        # # spect[:,np.round( np.arange(  np.round( self.kv["vLimitingIndices"][0]*oneHz  + 1 , self.kv["fftLen"] / 2 + 1 )  ) )  ] = abs(spectList[0][:,np.round(np.arange( np.round( self.kv["vLimitingIndices"][0]*oneHz + 1 ) , self.kv["fftLen"] / 2+1  ) ) ] )**2 /np.sum( hannWins[0]**2)
-        # print(spect)
+
 
 
                 # 1. Setup boundaries
@@ -334,34 +315,50 @@ class model:
             # Assign the frequency slice across all time blocks
             spect[:, start:end] = np.abs(spectra[i][:, start:end])**2 / norm_factor
 
+        
         # 3. Final Calculations
         compInt = 2 * spect / self.kv["fs"]
         compFq = np.linspace(0, self.kv["fs"] / 2, half_fft + 1)
-
-        print(compInt)
-        return compInt
+        class returned :
+            def __init__(self, x , y):
+                self.compInt =   x
+                self.compFq = y
+        
+        
+        return returned(compInt, compFq)
+        
+        # print(compInt)
+        
         #____
 
         
 
+    def glasberg2002(self, inSig ):
+        print("comin")
+        # print ( len(self._excitationPatern(inSig.compInt) ) )
+        sp = self.glasbergSpect(inSig)
+        
+        print("will start over arrays")
+        eLs = np.array([
+            self.getEL(sp.compInt[:, i], sp.compFq)
+            for i in range(sp.compInt.shape[1])
+        ])
 
-
+        return results
 
         
 
 
 if __name__ == '__main__':
     
-    m = model(free = True,**{"fhigh" : 25})
-    m.glasbergSpect(np.linspace(1000, 1500, 1000))
-    # # print(m.erbN)
-    # import matplotlib.pyplot as plt
-    # print( int(2000/len(m.erbN)) )
-    # print( len(m.erbN))
-    # y = Signals.sineMaker.makeSine(1000,0,1,20,m.kv['fs']) #it is crucial that both signals matlab/python have the same parameters (time is important)
-    
-    # res = m.moore1997(y)
-    # print(res.specLoudness)
+    m = model(free = True)
+    sig = np.sin(2*np.pi*1000*np.linspace(0,3,3*44100))
+    ex = m.moore1997(sig)
+    print("__________________DOne________________________")
+    plt.plot(m.res.specLoudness)
+    plt.show()
+    m.glasberg2002( sig ) 
+
     
 # -----------------double loop-------------------
 # time loop :  14.322951316833496

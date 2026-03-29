@@ -63,7 +63,7 @@ def fig12Plot(freq : float):
     
     fig, ax3 = plt.subplots(figsize=(7, 6))
 
-    X = np.linspace(20e-6, 120, 30)
+    X = np.linspace(20e-6, 120, 15)
 
     Y = []
     start_time = time.time()
