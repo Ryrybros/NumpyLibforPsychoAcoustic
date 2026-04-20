@@ -30,7 +30,7 @@ def fig8Plot(dBLevel : float):
         #The x axis is in dB
         X = 10 * np.log10(mod._eL) 
         
-        
+        print(res)
         Y = res.specLoudness
 
         

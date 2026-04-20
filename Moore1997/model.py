@@ -136,17 +136,20 @@ class model:
         #COmpint, COmpFq computation
         self.fftValues = FFTTreatmment.FFTComputer.computeFFT(earSig = sig , fs= self.kv['fs'])
        
-    def getEL(self, compInt, compFq):
+    def getEL(self, compInt, compFq, glasb_oneHz = None, model = 'Moore1997'):
         
-         
-        erbInt = np.zeros(len(self.erbFc))
+        eps = 1e-40
+        erbInt = np.ones(len(self.erbFc)) * eps
+        if (self.fftValues == None) : oneHz = glasb_oneHz
+        else: oneHz = self.fftValues.oneHz
         
+
         for i in range(len(self.erbFc) ) :
             
-            loValue = round(self.erbLoFreq[i]*self.fftValues.oneHz)
-            hiValue = round(self.erbHiFreq[i]*self.fftValues.oneHz)
+            loValue = round(self.erbLoFreq[i]*oneHz)
+            hiValue = round(self.erbHiFreq[i]*oneHz)
 
-            erbInt[i] = np.sum(compInt[loValue : hiValue + 1])
+            erbInt[i] = np.sum(compInt[loValue : hiValue + 1]) + eps
         
         
         
@@ -157,15 +160,6 @@ class model:
 
         erbdB2F = np.interp(x= compFq, xp = np.concatenate( ( [0],self.erbFc,[self.kv['fs']/2] ) ) , fp = np.concatenate( ( [min(erbdB) ], erbdB , [min(erbdB)] ) ) ) # map erbFc to compFq
         self.test = erbdB2F 
-
-        t = time.time()
-        print("-----------------double loop-------------------",)
-        print("time loop : " , time.time() - t)
-
-
-        #_______________________________test_____________________________
-        #This is a vectorized version of the nested loop. It is faster by a factor of more than 10
-        t = time.time()
 
 
         erb = ERB.f2erb(self.erbFc)
@@ -181,13 +175,19 @@ class model:
         p_low = p51[:, np.newaxis] - 0.35 * (p51[:, np.newaxis] / p511) * (db_vals - 51)
         p_high = p51[:, np.newaxis]
 
+
+        #Distinguishing  Moore and Glasb
+        
         p = np.where(g_raw < 0, p_low, p_high)
-
-
+        
         g_abs = np.abs(g_raw)
+    
+            
         w = (1 + p * g_abs) * np.exp(-p * g_abs)
-
+        
         eL = np.sum(w * int_vals, axis=1)
+
+    
 
         return eL
 
@@ -195,7 +195,6 @@ class model:
 
     #__________________________________________Moore model__________________________________________________
     def _excitationPatern(self ,e0 = None):
-                
         eL = self.getEL( self.fftValues.compInt, self.fftValues.compFq )
 
     
@@ -209,7 +208,7 @@ class model:
         else: E0 = (20e-6)**2 
     
         self._eL = eL / E0
-        print("_eL")
+        
         
         self.results.eLdB = 10*np.log10( self._eL  ) # get dB SPL (20uPa reference)
         
@@ -218,19 +217,19 @@ class model:
 
     
 
-    def specLoudness(self) :
+    def specLoudness(self, eL : np.array) :
         
 
-        specLoud = np.zeros(len(self._eL))
+        specLoud = np.zeros(len(eL))
         
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
-        specLoud1 = self.specLoudData.c *  ( (2*self._eL/( self._eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* self._eL  + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?
-        specLoud2 = self.specLoudData.c * (  (self.specLoudData.g * self._eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
-        specLoud3 = self.specLoudData.c * ( self._eL/(1.04*(10**6)))**0.5 #% Eq. 9?
+        specLoud1 = self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL  + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?
+        specLoud2 = self.specLoudData.c * (  (self.specLoudData.g * eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
+        specLoud3 = self.specLoudData.c * ( eL/(1.04*(10**6)))**0.5 #% Eq. 9?
         
-        specLoud[ self._eL < self.specLoudData.tQ ] = specLoud1[self._eL < self.specLoudData.tQ]
-        specLoud[ ( self._eL <= 10**10 ) & ( self._eL  > self.specLoudData.tQ )  ] = specLoud2[ (self._eL <= 10**10 ) & ( self._eL> self.specLoudData.tQ ) ]
-        specLoud[self._eL > 10**10] = specLoud3[self._eL > 10**10]# % end of Sec. 1.6 in the paper
+        specLoud[ eL < self.specLoudData.tQ ] = specLoud1[eL < self.specLoudData.tQ]
+        specLoud[ ( eL <= 10**10 ) & ( eL  > self.specLoudData.tQ )  ] = specLoud2[ (eL <= 10**10 ) & ( eL> self.specLoudData.tQ ) ]
+        specLoud[eL > 10**10] = specLoud3[eL > 10**10]# % end of Sec. 1.6 in the paper
 
         monauralLoudness = sum(specLoud) * self.kv['erbStep'] #     % integrate over the erbs
         
@@ -244,22 +243,26 @@ class model:
 
         return modelresult(specLoud, monauralLoudness)
     
+    def getSpecLoudness(self, eL : np.array):
+        return self.specLoudness(eL).specLoudness
+
     def moore1997(self, earSig : np.array,e0 = None):
         self.stationnarySpect(earSig)
         self._excitationPatern( e0= e0)
-        print("done")
-        self.res = self.specLoudness()
-        print("end moore")
+        
+        self.res = self.specLoudness(self._eL)
+        
+        return self.res
         
 
 
     def glasbergSpect(self, earSig : np.array ):
         
-        
+        filter = FilterComputer(self.kv, "1997", True)
+        earSig = filter.FIR(earSig)
         earSigPad = np.concat([ earSig, np.zeros( int( self.hannLenSmp[5]  ))  ] )
 
         numBlocks = np.ceil(len(earSig)/self.updateRate)
-        
        
         block_indices = np.arange(numBlocks)
         lower_bounds = block_indices * self.updateRate
@@ -297,7 +300,6 @@ class model:
                 # 1. Setup boundaries
         half_fft = int(self.kv["fftLen"] // 2)
         oneHz = (self.kv["fftLen"] + 2) / self.kv["fs"]
-
         # Create a full set of indices: [Nyquist, 4050, 2540, 1250, 500, 80, 0]
         # Note: we reverse them or order them to match the spectra list indices (0 to 5)
         boundaries = np.round(np.array(self.kv["vLimitingIndices"]) * oneHz).astype(int)
@@ -320,12 +322,16 @@ class model:
         compInt = 2 * spect / self.kv["fs"]
         compFq = np.linspace(0, self.kv["fs"] / 2, half_fft + 1)
         class returned :
-            def __init__(self, x , y):
+            def __init__(self, x , y, oneHz):
                 self.compInt =   x
                 self.compFq = y
+                self.oneHz = oneHz
+                
+                
+                
         
         
-        return returned(compInt, compFq)
+        return returned(compInt, compFq, oneHz)
         
         # print(compInt)
         
@@ -340,11 +346,17 @@ class model:
         
         print("will start over arrays")
         eLs = np.array([
-            self.getEL(sp.compInt[:, i], sp.compFq)
-            for i in range(sp.compInt.shape[1])
+            self.getEL(sp.compInt[i, :], sp.compFq, sp.oneHz, model = 'glasberg2002')
+            for i in range(len(sp.compInt))
         ])
+        print("eLs has : ", eLs.shape)
+        
+        specLoud = np.array([
+            self.getSpecLoudness(eL=eLs[i, :])
+            for i in range(len(eLs))
+        ])
+        return specLoud
 
-        return results
 
         
 
@@ -357,7 +369,7 @@ if __name__ == '__main__':
     print("__________________DOne________________________")
     plt.plot(m.res.specLoudness)
     plt.show()
-    m.glasberg2002( sig ) 
+    eL = m.glasberg2002( sig )
 
     
 # -----------------double loop-------------------

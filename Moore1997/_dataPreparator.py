@@ -34,13 +34,13 @@ class dataPreparator:
         fOuter = np.array(data[dataModel]["fOuter"])
         tfOuter = np.array(data[dataModel][f"tfOuter{regim}"])
 
-        tfOuterInterp = Interp.interp1(fVec,fOuter, tfOuter, pchip= True) #None Pchip interpolation, this is linear, pchip is cubic
+        tfOuterInterp = Interp.interp1(fVec,fOuter, tfOuter, pchip= True) 
         
         fMiddle = np.array(data[dataModel]["fMiddle"])
         tfMiddle= np.array(data[dataModel]["tfMiddle"])
         # print(tfMiddle)
 
-        tfMiddleInterp = Interp.interp1(fVec,fMiddle, tfMiddle,pchip= True) #None Pchip interpolation, this is linear, pchip is cubic
+        tfMiddleInterp = Interp.interp1(fVec,fMiddle, tfMiddle,pchip= True) 
         
 
         dat = ReturnedData()
