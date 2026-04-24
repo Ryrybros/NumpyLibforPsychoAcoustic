@@ -135,14 +135,13 @@ class model:
         filter = FilterComputer(self.kv, "1997", True)
         sig = filter.FIR(earSig)
         #COmpint, COmpFq computation
-        self.fftValues = FFTTreatmment.FFTComputer.computeFFT(earSig = sig , fs= self.kv['fs'])
+        return FFTTreatmment.FFTComputer.computeFFT(earSig = sig , fs= self.kv['fs'])
        
-    def getEL(self, compInt, compFq, glasb_oneHz = None, model = 'Moore1997'):
+    def getEL(self, fftValues = None, model = 'Moore1997'):
         
         eps = 1e-40
         erbInt = np.ones(len(self.erbFc)) * eps
-        if (self.fftValues == None) : oneHz = glasb_oneHz
-        else: oneHz = self.fftValues.oneHz
+        oneHz = fftValues.oneHz
         
 
         for i in range(len(self.erbFc) ) :
@@ -150,7 +149,7 @@ class model:
             loValue = round(self.erbLoFreq[i]*oneHz)
             hiValue = round(self.erbHiFreq[i]*oneHz)
 
-            erbInt[i] = np.sum(compInt[loValue : hiValue + 1]) + eps
+            erbInt[i] = np.sum(fftValues.compInt[loValue : hiValue + 1]) + eps
         
         
         
@@ -159,7 +158,7 @@ class model:
         
         erbdB2F = np.zeros(len(self.erbFc))
 
-        erbdB2F = np.interp(x= compFq, xp = np.concatenate( ( [0],self.erbFc,[self.kv['fs']/2] ) ) , fp = np.concatenate( ( [min(erbdB) ], erbdB , [min(erbdB)] ) ) ) # map erbFc to compFq
+        erbdB2F = np.interp(x= fftValues.compFq, xp = np.concatenate( ( [0],self.erbFc,[self.kv['fs']/2] ) ) , fp = np.concatenate( ( [min(erbdB) ], erbdB , [min(erbdB)] ) ) ) # map erbFc to compFq
         self.test = erbdB2F 
 
 
@@ -167,8 +166,8 @@ class model:
         p51 = 4 * self.erbFc / erb
 
         fc = self.erbFc[:, np.newaxis]
-        fq = compFq[np.newaxis, :]
-        int_vals = compInt[np.newaxis, :]
+        fq = fftValues.compFq[np.newaxis, :]
+        int_vals = fftValues.compInt[np.newaxis, :]
 
         g_raw = (fq - fc) / fc
 
@@ -195,11 +194,8 @@ class model:
         
 
     #__________________________________________Moore model__________________________________________________
-    def _excitationPatern(self ,e0 = None):
-        eL = self.getEL( self.fftValues.compInt, self.fftValues.compFq )
-
-    
-        print("-----------------double loop-------------------",len(eL))
+    def _excitationPatern(self ,fftValues,e0 = None):
+        eL = self.getEL( fftValues= fftValues )
         # print("time vector : " , time.time() - t)
    
 
@@ -208,14 +204,14 @@ class model:
         if(e0 != None) : E0 = e0
         else: E0 = (20e-6)**2 
     
-        self._eL = eL / E0
+        _eL = eL / E0
         
         
-        self.results.eLdB = 10*np.log10( self._eL  ) # get dB SPL (20uPa reference)
+        self.results.eLdB = 10*np.log10( _eL  ) # get dB SPL (20uPa reference)
         
         self.results.erbN = self.erbN
         self.results.fc = self.erbFc
-        return eL
+        return _eL
 
     
 
@@ -226,7 +222,7 @@ class model:
         
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
         
-        specLoud1 = self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6? 
+        specLoud1 =self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6? 
 
 
         specLoud2 = self.specLoudData.c * (  (self.specLoudData.g * eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
@@ -255,12 +251,12 @@ class model:
 
         if(fs != self.kv['fs']):
             earSig = resample_poly(earSig, self.kv['fs'], fs)
-        self.stationnarySpect(earSig)
-        eL = self._excitationPatern( e0= e0 )
+        fftVals = self.stationnarySpect(earSig)
+        eL = self._excitationPatern( e0= e0, fftValues= fftVals )
         
-        self.res = self.specLoudness(self._eL)
+        res = self.specLoudness(eL)
         
-        return self.res
+        return res 
         
 
 
@@ -300,6 +296,7 @@ class model:
             # Result is a (numBlocks, fftLen)
             res_fft = np.fft.fft(segments, n=self.kv["fftLen"], axis=1)
             spectra.append(res_fft)
+        
         spectList = np.abs(spectra)
         
 
@@ -329,17 +326,10 @@ class model:
         # 3. Final Calculations
         compInt = 2 * spect / self.kv["fs"]
         compFq = np.linspace(0, self.kv["fs"] / 2, half_fft + 1)
-        class returned :
-            def __init__(self, x , y, oneHz):
-                self.compInt =   x
-                self.compFq = y
-                self.oneHz = oneHz
-                
-                
                 
         
         
-        return returned(compInt, compFq, oneHz)
+        return (compInt, compFq, oneHz)
         
         # print(compInt)
         
@@ -354,12 +344,22 @@ class model:
             inSig = resample_poly(inSig, self.kv['fs'], fs)
 
         # print ( len(self._excitationPatern(inSig.compInt) ) )
-        sp = self.glasbergSpect(inSig)
+        rawFftValues = self.glasbergSpect(inSig)
+        class fftValuesFormat :
+            def __init__(self, x , y, oneHz):
+                self.compInt =   x
+                self.compFq = y
+                self.oneHz = oneHz
         
-        print("will start over arrays")
+        fftVals = np.array([])
+        for i in range(len(rawFftValues[0])):
+            fftVals = np.append(fftVals, fftValuesFormat(rawFftValues[0][i], rawFftValues[1], rawFftValues[2]))
+        
+
+        l = len(fftVals)
         eLs = np.array([
-            self.getEL(sp.compInt[i, :], sp.compFq, sp.oneHz, model = 'glasberg2002')
-            for i in range(len(sp.compInt))
+            self.getEL(fftValues = fftVals[i], model = 'glasberg2002')
+            for i in range(l) #Hopefully they all have the same len
         ])
         
         print("eLs has : ", eLs.shape)
@@ -368,8 +368,7 @@ class model:
             self.getSpecLoudness(eL=eLs[i, :])
             for i in range(len(eLs))
         ])
-        return ( specLoud , eL )
-
+        return ( specLoud , eLs )
 
         
 
@@ -474,3 +473,7 @@ if __name__ == '__main__':
 # -----------------double loop------------------- 149
 # time vector :  0.0947878360748291
 # 2.481541837659083e-23
+
+
+
+#Notes : ajouter parametre timestep
