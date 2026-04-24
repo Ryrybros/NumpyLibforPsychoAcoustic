@@ -8,6 +8,7 @@ from MathOperators import FFTTreatmment
 from MathOperators import Signals
 import scipy.signal.windows as win
 import scipy.fft as fft
+from scipy.signal import resample_poly
 
 import numpy as np
 import time 
@@ -214,6 +215,7 @@ class model:
         
         self.results.erbN = self.erbN
         self.results.fc = self.erbFc
+        return eL
 
     
 
@@ -223,14 +225,17 @@ class model:
         specLoud = np.zeros(len(eL))
         
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
-        specLoud1 = self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL  + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6?
+        
+        specLoud1 = self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6? 
+
+
         specLoud2 = self.specLoudData.c * (  (self.specLoudData.g * eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
         specLoud3 = self.specLoudData.c * ( eL/(1.04*(10**6)))**0.5 #% Eq. 9?
         
         specLoud[ eL < self.specLoudData.tQ ] = specLoud1[eL < self.specLoudData.tQ]
         specLoud[ ( eL <= 10**10 ) & ( eL  > self.specLoudData.tQ )  ] = specLoud2[ (eL <= 10**10 ) & ( eL> self.specLoudData.tQ ) ]
         specLoud[eL > 10**10] = specLoud3[eL > 10**10]# % end of Sec. 1.6 in the paper
-
+        
         monauralLoudness = sum(specLoud) * self.kv['erbStep'] #     % integrate over the erbs
         
         self.results.monauralLoudness = monauralLoudness #     % integrate over the erbs
@@ -246,9 +251,12 @@ class model:
     def getSpecLoudness(self, eL : np.array):
         return self.specLoudness(eL).specLoudness
 
-    def moore1997(self, earSig : np.array,e0 = None):
+    def moore1997(self, earSig : np.array,e0 = None, fs = 32000):
+
+        if(fs != self.kv['fs']):
+            earSig = resample_poly(earSig, self.kv['fs'], fs)
         self.stationnarySpect(earSig)
-        self._excitationPatern( e0= e0)
+        eL = self._excitationPatern( e0= e0 )
         
         self.res = self.specLoudness(self._eL)
         
@@ -339,8 +347,12 @@ class model:
 
         
 
-    def glasberg2002(self, inSig ):
-        print("comin")
+    def glasberg2002(self, inSig, fs = 32000 ):
+
+        
+        if(fs != self.kv['fs']):
+            inSig = resample_poly(inSig, self.kv['fs'], fs)
+
         # print ( len(self._excitationPatern(inSig.compInt) ) )
         sp = self.glasbergSpect(inSig)
         
@@ -349,13 +361,14 @@ class model:
             self.getEL(sp.compInt[i, :], sp.compFq, sp.oneHz, model = 'glasberg2002')
             for i in range(len(sp.compInt))
         ])
-        print("eLs has : ", eLs.shape)
         
+        print("eLs has : ", eLs.shape)
+        print(eLs)
         specLoud = np.array([
             self.getSpecLoudness(eL=eLs[i, :])
             for i in range(len(eLs))
         ])
-        return specLoud
+        return ( specLoud , eL )
 
 
         
