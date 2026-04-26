@@ -134,8 +134,9 @@ class model:
         #Use it after Pretreatment
         filter = FilterComputer(self.kv, "1997", True)
         sig = filter.FIR(earSig)
-        #COmpint, COmpFq computation
         return FFTTreatmment.FFTComputer.computeFFT(earSig = sig , fs= self.kv['fs'])
+       
+
        
     def getEL(self, fftValues = None, model = 'Moore1997'):
         
@@ -196,22 +197,13 @@ class model:
     #__________________________________________Moore model__________________________________________________
     def _excitationPatern(self ,fftValues,e0 = None):
         eL = self.getEL( fftValues= fftValues )
-        # print("time vector : " , time.time() - t)
-   
-
-        #______________________________end of test____________________________________________
-
-        if(e0 != None) : E0 = e0
-        else: E0 = (20e-6)**2 
-    
-        _eL = eL / E0
+        eL = eL / (20e-6)**2 
         
-        
-        self.results.eLdB = 10*np.log10( _eL  ) # get dB SPL (20uPa reference)
+        self.results.eLdB = 10*np.log10( eL  ) # get dB SPL (20uPa reference)
         
         self.results.erbN = self.erbN
         self.results.fc = self.erbFc
-        return _eL
+        return eL
 
     
 
@@ -222,10 +214,8 @@ class model:
         
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
         
-        specLoud1 =self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6? 
-
-
-        specLoud2 = self.specLoudData.c * (  (self.specLoudData.g * eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
+        specLoud1 = self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6? 
+        specLoud2 =  self.specLoudData.c * (  (self.specLoudData.g * eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
         specLoud3 = self.specLoudData.c * ( eL/(1.04*(10**6)))**0.5 #% Eq. 9?
         
         specLoud[ eL < self.specLoudData.tQ ] = specLoud1[eL < self.specLoudData.tQ]
@@ -256,7 +246,12 @@ class model:
         
         res = self.specLoudness(eL)
         
-        return res 
+        class returned :
+            def __init__(self, loud, eL):
+                self.Loudness = loud
+                self.eL = eL
+                
+        return returned(res, eL)
         
 
 
@@ -358,7 +353,7 @@ class model:
 
         l = len(fftVals)
         eLs = np.array([
-            self.getEL(fftValues = fftVals[i], model = 'glasberg2002')
+            self._excitationPatern(fftValues = fftVals[i])
             for i in range(l) #Hopefully they all have the same len
         ])
         
@@ -368,6 +363,8 @@ class model:
             self.getSpecLoudness(eL=eLs[i, :])
             for i in range(len(eLs))
         ])
+
+
         return ( specLoud , eLs )
 
         
@@ -378,102 +375,10 @@ if __name__ == '__main__':
     m = model(free = True)
     sig = np.sin(2*np.pi*1000*np.linspace(0,3,3*44100))
     ex = m.moore1997(sig)
-    print("__________________DOne________________________")
+    
     plt.plot(m.res.specLoudness)
     plt.show()
     eL = m.glasberg2002( sig )
-
-    
-# -----------------double loop-------------------
-# time loop :  14.322951316833496
-# -----------------double loop------------------- 149
-# time vector :  0.19310355186462402
-# 9.26442286059391e-23
-# Elapsed time for step  : 20.0 dB :  17.258923053741455
-# -----------------double loop-------------------
-# time loop :  21.742462873458862
-# -----------------double loop------------------- 149
-# time vector :  0.27115488052368164
-# 5.823351512373315e-22
-# Elapsed time for step  : 30.0 dB :  32.16646695137024
-# -----------------double loop-------------------
-# time loop :  21.298561573028564
-# -----------------double loop------------------- 149
-# time vector :  0.2699263095855713
-# 1.3552527156068805e-20
-# Elapsed time for step  : 40.0 dB :  31.16813015937805
-# -----------------double loop-------------------
-# time loop :  22.262532234191895
-# -----------------double loop------------------- 149
-# time vector :  0.2755773067474365
-# 1.0842021724855044e-19
-# Elapsed time for step  : 50.0 dB :  31.815988302230835
-# -----------------double loop-------------------
-# time loop :  20.951077461242676
-# -----------------double loop------------------- 149
-# time vector :  0.2379288673400879
-# 7.047314121155779e-19
-# Elapsed time for step  : 60.0 dB :  31.460907220840454
-# -----------------double loop-------------------
-# time loop :  5.854139804840088
-# -----------------double loop------------------- 149
-# time vector :  0.10844111442565918
-# 1.734723475976807e-17
-# Elapsed time for step  : 70.0 dB :  15.711686134338379
-# -----------------double loop-------------------
-# time loop :  5.193831920623779
-# -----------------double loop------------------- 149
-# time vector :  0.0963582992553711
-# 1.1102230246251565e-16
-# Elapsed time for step  : 80.0 dB :  7.638150453567505
-# -----------------double loop-------------------
-# time loop :  4.737797021865845
-# -----------------double loop------------------- 149
-# time vector :  0.10350465774536133
-# 1.1657341758564144e-15
-# Elapsed time for step  : 90.0 dB :  7.144345760345459
-# -----------------double loop-------------------
-# time loop :  4.876959800720215
-# -----------------double loop------------------- 149
-# time vector :  0.10536885261535645
-# 1.1102230246251565e-14
-# Elapsed time for step  : 100.0 dB :  7.512490749359131
-# -----------------double loop-------------------
-# time loop :  4.697258949279785
-# -----------------double loop------------------- 149
-# time vector :  0.08721685409545898
-# 3.637978807091713e-12
-# Elapsed time for curve 0 plot:  7.150695085525513
-# -----------------double loop-------------------
-# time loop :  4.837356805801392
-# -----------------double loop------------------- 149
-# time vector :  0.09795331954956055
-# 3.197442310920451e-14
-# Elapsed time for curve 1 plot:  7.225187063217163
-# -----------------double loop-------------------
-# time loop :  4.847031354904175
-# -----------------double loop------------------- 149
-# time vector :  0.10391998291015625
-# 7.993605777301127e-15
-# Elapsed time for curve 2 plot:  7.297339677810669
-# -----------------double loop-------------------
-# time loop :  4.750588417053223
-# -----------------double loop------------------- 149
-# time vector :  0.09364652633666992
-# 1.1102230246251565e-15
-# Elapsed time for curve 3 plot:  7.123446464538574
-# -----------------double loop-------------------
-# time loop :  5.026240587234497
-# -----------------double loop------------------- 149
-# time vector :  0.10103487968444824
-# 6.938893903907228e-17
-# Elapsed time for curve 4 plot:  7.41409158706665
-# -----------------double loop-------------------
-# time loop :  4.883578062057495
-# -----------------double loop------------------- 149
-# time vector :  0.0947878360748291
-# 2.481541837659083e-23
-
 
 
 #Notes : ajouter parametre timestep
