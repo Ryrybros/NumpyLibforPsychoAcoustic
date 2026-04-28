@@ -9,7 +9,7 @@ from MathOperators import Signals
 import scipy.signal.windows as win
 import scipy.fft as fft
 from scipy.signal import resample_poly
-
+from MathOperators.Signals import *
 import numpy as np
 import time 
 import math
@@ -364,8 +364,40 @@ class model:
             for i in range(len(eLs))
         ])
 
+        class result :
+            def __init__(self, specLoud, STL, LTL, monoral, binaural):
+                self.specLoud = specLoud
+                self.STL = STL
+                self.LTL = LTL
+                self.monoral = monoral
+                self.binaural = binaural
 
-        return ( specLoud , eLs )
+        monoralLoud = np.sum(specLoud, 1)* self.kv["erbStep"] 
+        binauralLoud = 2*monoralLoud
+
+
+        # STL and LTL:
+        aSTL = 0.045
+        rSTL = 0.02
+        STL = [0.0] * len(binauralLoud)
+
+        aLTL = 0.01
+        rLTL = 0.0005
+        LTL = [0.0] * len(binauralLoud)
+
+        for ii in range(1, len(binauralLoud)):
+            if binauralLoud[ii] > STL[ii - 1]:
+                STL[ii] = float( aSTL * binauralLoud[ii] + (1 - aSTL) * STL[ii - 1])
+            else:
+                STL[ii] = float( rSTL * binauralLoud[ii] + (1 - rSTL) * STL[ii - 1] )
+
+            if STL[ii] > LTL[ii - 1]:
+                LTL[ii] = float( aLTL * STL[ii] + (1 - aLTL) * LTL[ii - 1] )
+            else:
+                LTL[ii] = float ( rLTL * STL[ii] + (1 - rLTL) * LTL[ii - 1] )
+
+
+        return result(specLoud= specLoud, STL= STL, LTL = LTL, monoral= monoralLoud, binaural=binauralLoud)
 
         
 
@@ -373,12 +405,15 @@ class model:
 if __name__ == '__main__':
     
     m = model(free = True)
-    sig = np.sin(2*np.pi*1000*np.linspace(0,3,3*44100))
-    ex = m.moore1997(sig)
-    
-    plt.plot(m.res.specLoudness)
+    fs = 32000
+    y = sineMaker.makeSine(400,0,2,100,fs) #it is crucial that both signals matlab/python have the same parameters (time is important)
+    y[int(len(y) / 2): ] =  sineMaker.makeSine(300,0,2,80,fs)[: int( len(y) / 2)]
+    g = m.glasberg2002(y, fs)
+    print(f"monoral : {g.monoral[:10]}, \nbin :  {g.binaural[:10]} ,\n  STL : {g.STL[:10]} \n LTL : {g.LTL[:10]}")
+    plt.plot(g.STL)
+    plt.plot(g.LTL)
+    plt.plot(g.binaural)
     plt.show()
-    eL = m.glasberg2002( sig )
 
 
 #Notes : ajouter parametre timestep
