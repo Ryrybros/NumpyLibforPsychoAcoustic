@@ -66,9 +66,8 @@ class dataPreparator:
         fRef = data["fRef"]
         # print(fRef)
         tQ = data["tQ"]
-        print(f"lens : {len(fRef)} , {len(tQ)}")
-        dat.tQ = Interp.interp1(fRef, tQ, fVec,pchip=True)
         
+        dat.tQ = Interp.interp1(fRef, tQ, fVec,pchip=True)
         
         
         # open file

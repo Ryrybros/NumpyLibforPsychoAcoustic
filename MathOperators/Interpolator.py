@@ -12,8 +12,13 @@ class Interpolator:
 
         if(pchip):
             pch = I.PchipInterpolator(x= x,y = y)
-            return pch(ax)
-        
+            out_of_bounds = (ax < np.min(x)) | (ax > np.max(x))
+            res = pch(ax)
+            res[out_of_bounds] = np.nan
+            #Python extrapolates values where it should not, the nan follow matlab
+            
+            return res
+
         return np.interp(x, xp, fp)
     
 

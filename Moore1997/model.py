@@ -111,15 +111,17 @@ class model:
 
     def _specLoud(self):
         
-        dataSL = dataPreparator.SpecLoudness(self.data,self.fVec)
+        dataSL = dataPreparator.SpecLoudness(self.data,self.erbFc)
         class res :
             def __init__(self):
                         
                 self.tQdB = dataSL.tQ
                 self.tQ = 10**(self.tQdB/10)
+                self.tQ[0] = self.tQ[1]
                 self.tQdB500 = dataSL.tQ500
                 # %gdB = dataSL.g;    % low level gain in cochlea amplifier
                 self.g = 10**((self.tQdB500-self.tQdB)/10)
+                self.g_prior = dataSL.g 
                 self.a = dataSL.a    #% parameter for linearization around absolute threshold
                 self.alpha = dataSL.alpha #    % compressive exponent
                 self.c = dataSL.c # % constant to get loudness scale to sone
@@ -214,9 +216,9 @@ class model:
         
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
         
-        specLoud1 = 0*self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6? 
+        specLoud1 = self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6? 
         specLoud2 =     self.specLoudData.c * (  (self.specLoudData.g * eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
-        specLoud3 = 0*self.specLoudData.c * ( eL/(1.04*(10**6)))**0.5 #% Eq. 9?
+        specLoud3 = self.specLoudData.c * ( eL/(1.04*(10**6)))**0.5 #% Eq. 9?
         
         specLoud[ eL < self.specLoudData.tQ ] = specLoud1[eL < self.specLoudData.tQ]
         specLoud[ ( eL <= 10**10 ) & ( eL  > self.specLoudData.tQ )  ] = specLoud2[ (eL <= 10**10 ) & ( eL> self.specLoudData.tQ ) ]
