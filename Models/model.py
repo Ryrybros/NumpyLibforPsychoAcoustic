@@ -1,9 +1,9 @@
 from collections import defaultdict
-from Moore1997._dataPreparator import dataPreparator
-from Moore1997.Filter import FilterComputer
+from Models._dataPreparator import dataPreparator
+from Models.Filter import FilterComputer
 from filetools.jsonHandler import jsonHandler
 from MathOperators.ERBscale import ERB
-from MathOperators.Interpolator import Interpolator
+
 from MathOperators import FFTTreatmment
 from MathOperators import Signals
 import scipy.signal.windows as win

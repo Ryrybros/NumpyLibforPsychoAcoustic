@@ -1,6 +1,6 @@
 
 from filetools.jsonHandler import jsonHandler
-from Moore1997._dataPreparator import dataPreparator
+from Models._dataPreparator import dataPreparator
 
 from scipy import signal
 from MathOperators.Signals import sineMaker

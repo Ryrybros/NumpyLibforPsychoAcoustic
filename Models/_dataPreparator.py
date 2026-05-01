@@ -1,13 +1,32 @@
 import numpy as np
 from filetools import jsonHandler
-from MathOperators import Interpolator
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
+import scipy.interpolate as I
 
 Json = jsonHandler.jsonHandler
-Interp = Interpolator.Interpolator
 
+class Interpolator:
 
+    #This class is just a wrapper for numpy and scipy interpolators
+
+    def interp1(x : np.array, y : np.array , ax : np.array,pchip = False):
+        #Need to check if this is the right interpolation
+        
+        assert(len(x) == len(y)  )
+
+        if(pchip):
+            pch = I.PchipInterpolator(x= x,y = y)
+            out_of_bounds = (ax < np.min(x)) | (ax > np.max(x))
+            res = pch(ax)
+            res[out_of_bounds] = np.nan
+            #Python extrapolates values where it should not, the nan follow matlab
+            
+            return res
+
+        return np.interp(x, xp, fp)
+
+Interp = Interpolator
 
 class dataPreparator:
 
