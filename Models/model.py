@@ -4,7 +4,6 @@ from Models.Filter import FilterComputer
 from filetools.jsonHandler import jsonHandler
 from MathOperators.ERBscale import ERB
 
-from MathOperators import FFTTreatmment
 from MathOperators import Signals
 import scipy.signal.windows as win
 import scipy.fft as fft
@@ -23,6 +22,27 @@ class Result:
         self.erbN = None
         self.fc = None
 
+
+
+def _computeFFT(earSig : np.array, fs : float):
+    class returned :
+        def __init__(self, earSig : np.array, fs : float ):
+            
+            self.spect = fft.fft(earSig)
+            self.fftLen = len(self.spect)
+            
+            self.oneHz = (self.fftLen+2)/fs
+            
+            self.numBins = int(self.fftLen/2 + 1)
+        
+            self.compInt =   2*abs((self.spect[0 : self.numBins] ** 2)/ (self.numBins*fs) )#2*abs( ( (self.spect(1:self.numBins))**2)/(self.numBins*fs)  )
+            self.compFq = np.linspace(0,fs/2,self.numBins) # np.array([(2*self.numBins/fs)*i for i in range(int(fs/2))])# linspace(0,fs/2,numBins)
+        
+        
+            self.nPoints = len(self.compFq)
+
+    return returned(earSig,fs)
+    
 class model:
     
     #______________PRETREATMENT______________
@@ -73,12 +93,7 @@ class model:
 
 
         #___________________________________Glasberg__________________________
-
-        #MATLAB________________________________________________________
-        # numBlocks = ceil(length(earSig)./updateRate);
-        # earSigPad = earSig;
-        # earSigPad(end+1:end+hannLenSmp(6)) = zeros(hannLenSmp(6),1);  % zero padding
-        #MATLAB________________________________________________________
+        #Hann windows
 
         self.updateRate = np.round(kv["timeStep"]*kv["fs"])
         self.hannLenSmp = np.round(np.array(kv["hannLenMs"])/1000 * kv["fs"]) # windows size in samples
@@ -100,8 +115,6 @@ class model:
     def _erbScale(self):
         self.erbNMin = ERB.f2erbrate(self.kv["erbFcMin"])
         self.erbNMax = ERB.f2erbrate(self.kv["erbFcMax"])
-        # print("erbMax : ", self.erbNMax)
-        # self.erbN = np.array( [self.erbNMin + self.kv["erbStep"]*i for i in range(int((self.erbNMax - self.erbNMin)/self.kv["erbStep"]))] )#erbNMin:kv.erbStep:erbNMax    # numbers of erb bands
         self.erbN = np.arange(self.erbNMin , self.erbNMax , self.kv["erbStep"]  ) 
         
         self.erbFc = ERB.erbrate2f(self.erbN)        # center frequency of erb bands
@@ -121,7 +134,6 @@ class model:
                 self.tQdB500 = dataSL.tQ500
                 # %gdB = dataSL.g;    % low level gain in cochlea amplifier
                 self.g = 10**((self.tQdB500-self.tQdB)/10)
-                self.g_prior = dataSL.g 
                 self.a = dataSL.a    #% parameter for linearization around absolute threshold
                 self.alpha = dataSL.alpha #    % compressive exponent
                 self.c = dataSL.c # % constant to get loudness scale to sone
@@ -131,14 +143,39 @@ class model:
     #_____________________________________________END OF PRETREATMENT_____________________________________________
 
 
+    #Moore stationnary model_________________________________________________________________________________________
+
     def stationnarySpect(self, earSig : np.array , stationnary = True):
-        #calculate intensity for each ERB (dB/ERB)
+        #Prepare spect given by fft for stationnary model (moore) this is not the same as glasberg
         #Use it after Pretreatment
         filter = FilterComputer(self.kv, "1997", True)
         sig = filter.FIR(earSig)
-        return FFTTreatmment.FFTComputer.computeFFT(earSig = sig , fs= self.kv['fs'])
+        return _computeFFT(earSig = sig , fs= self.kv['fs'])
        
 
+
+
+    class mooreReturned :
+        def __init__(self, loud, eL):
+            self.Loudness = loud
+            self.eL = eL
+            
+    def moore1997(self, earSig : np.array,e0 = None, fs = 32000):
+
+        if(fs != self.kv['fs']):
+            earSig = resample_poly(earSig, self.kv['fs'], fs)
+        fftVals = self.stationnarySpect(earSig)
+        eL = self._excitationPatern( e0= e0, fftValues= fftVals )
+        
+        res = self.specLoudness(eL)
+        
+                
+        return self.mooreReturned(res, eL)
+        
+
+
+    #Commune computation : excitation patterns then Specific loudness
+    
        
     def getEL(self, fftValues = None, model = 'Moore1997'):
         
@@ -162,7 +199,7 @@ class model:
         erbdB2F = np.zeros(len(self.erbFc))
 
         erbdB2F = np.interp(x= fftValues.compFq, xp = np.concatenate( ( [0],self.erbFc,[self.kv['fs']/2] ) ) , fp = np.concatenate( ( [min(erbdB) ], erbdB , [min(erbdB)] ) ) ) # map erbFc to compFq
-        self.test = erbdB2F 
+
 
 
         erb = ERB.f2erb(self.erbFc)
@@ -179,8 +216,6 @@ class model:
         p_high = p51[:, np.newaxis]
 
 
-        #Distinguishing  Moore and Glasb
-        
         p = np.where(g_raw < 0, p_low, p_high)
         
         g_abs = np.abs(g_raw)
@@ -194,9 +229,6 @@ class model:
 
         return eL
 
-        
-
-    #__________________________________________Moore model__________________________________________________
     def _excitationPatern(self ,fftValues,e0 = None):
         eL = self.getEL( fftValues= fftValues )
         eL = eL / (20e-6)**2 
@@ -207,7 +239,7 @@ class model:
         self.results.fc = self.erbFc
         return eL
 
-    
+
 
     def specLoudness(self, eL : np.array) :
         
@@ -238,27 +270,9 @@ class model:
     
     def getSpecLoudness(self, eL : np.array):
         return self.specLoudness(eL).specLoudness
-
-
-
-    class mooreReturned :
-        def __init__(self, loud, eL):
-            self.Loudness = loud
-            self.eL = eL
-            
-    def moore1997(self, earSig : np.array,e0 = None, fs = 32000):
-
-        if(fs != self.kv['fs']):
-            earSig = resample_poly(earSig, self.kv['fs'], fs)
-        fftVals = self.stationnarySpect(earSig)
-        eL = self._excitationPatern( e0= e0, fftValues= fftVals )
-        
-        res = self.specLoudness(eL)
-        
-                
-        return self.mooreReturned(res, eL)
-        
-
+   
+    
+    #Glasberg non stationnary model specific functions
 
     def glasbergSpect(self, earSig : np.array ):
         
@@ -275,8 +289,6 @@ class model:
         
         hannWins = [win.hann(int(length)) for length in self.hannLenSmp]
 
-        # Process each window size
-        # We store the results in a list of matrices
         spectra = []
 
         
@@ -302,28 +314,22 @@ class model:
 
 
 
-                # 1. Setup boundaries
         half_fft = int(self.kv["fftLen"] // 2)
         oneHz = (self.kv["fftLen"] + 2) / self.kv["fs"]
-        # Create a full set of indices: [Nyquist, 4050, 2540, 1250, 500, 80, 0]
-        # Note: we reverse them or order them to match the spectra list indices (0 to 5)
+        
         boundaries = np.round(np.array(self.kv["vLimitingIndices"]) * oneHz).astype(int)
         all_lims = np.concatenate(([half_fft + 1], boundaries, [0]))
 
-        # 2. Vectorized Loop for Stitching
         spect = np.zeros((int(numBlocks), half_fft + 1))
 
-        # spectra[0] corresponds to the range all_lims[0] to all_lims[1], etc.
         for i in range(6):
             start, end = all_lims[i+1], all_lims[i]
-            # Calculate normalization factor (sum of squares of current Hann window)
+            
             norm_factor = np.sum(hannWins[i]**2)
             
-            # Assign the frequency slice across all time blocks
             spect[:, start:end] = np.abs(spectra[i][:, start:end])**2 / norm_factor
 
         
-        # 3. Final Calculations
         compInt = 2 * spect / self.kv["fs"]
         compFq = np.linspace(0, self.kv["fs"] / 2, half_fft + 1)
                 
@@ -331,9 +337,6 @@ class model:
         
         return (compInt, compFq, oneHz)
         
-        # print(compInt)
-        
-        #____
 
         
 
@@ -343,7 +346,6 @@ class model:
         if(fs != self.kv['fs']):
             inSig = resample_poly(inSig, self.kv['fs'], fs)
 
-        # print ( len(self._excitationPatern(inSig.compInt) ) )
         rawFftValues = self.glasbergSpect(inSig)
         class fftValuesFormat :
             def __init__(self, x , y, oneHz):
@@ -362,8 +364,6 @@ class model:
             for i in range(l) #Hopefully they all have the same len
         ])
         
-        print("eLs has : ", eLs.shape)
-        print(eLs)
         specLoud = np.array([
             self.getSpecLoudness(eL=eLs[i, :])
             for i in range(len(eLs))

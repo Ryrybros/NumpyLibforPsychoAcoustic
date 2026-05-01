@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from Moore1997.model import model
+from Models.model import model
 from MathOperators.Signals import sineMaker
 import time
 
@@ -28,10 +28,10 @@ def fig8Plot(dBLevel : float):
         res = mod.moore1997(y,target_tQdB[i])
         
         #The x axis is in dB
-        X = 10 * np.log10(mod._eL) 
+        X = 10 * np.log10(res.eL) 
         
-        print(res)
-        Y = res.specLoudness
+        
+        Y = res.Loudness.specLoudness
 
         
         ax3.semilogy(X, Y, color='black', linewidth=1.2)
@@ -74,7 +74,7 @@ def fig12Plot(freq : float):
         
         res = mod.moore1997(y)
         
-        Y.append(2*res.monauralLoudness )
+        Y.append(2*res.Loudness.monauralLoudness )
         i += 1 
         print(f"{i} / {len(X)} done")
 
