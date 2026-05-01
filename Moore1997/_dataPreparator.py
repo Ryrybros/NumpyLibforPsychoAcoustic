@@ -34,13 +34,13 @@ class dataPreparator:
         fOuter = np.array(data[dataModel]["fOuter"])
         tfOuter = np.array(data[dataModel][f"tfOuter{regim}"])
 
-        tfOuterInterp = Interp.interp1(fVec,fOuter, tfOuter, pchip= True) 
+        tfOuterInterp = Interp.interp1(fOuter, tfOuter, fVec, pchip= True) 
         
         fMiddle = np.array(data[dataModel]["fMiddle"])
         tfMiddle= np.array(data[dataModel]["tfMiddle"])
         # print(tfMiddle)
 
-        tfMiddleInterp = Interp.interp1(fVec,fMiddle, tfMiddle,pchip= True) 
+        tfMiddleInterp = Interp.interp1(fMiddle, tfMiddle, fVec,pchip= True) 
         
 
         dat = ReturnedData()
@@ -66,9 +66,26 @@ class dataPreparator:
         fRef = data["fRef"]
         # print(fRef)
         tQ = data["tQ"]
-        dat.tQ = Interp.interp1(fVec, fRef,tQ,pchip=True)
-        dat.tQ[ : len(dat.tQ) - 1 ] = dat.tQ[ 1 : ] 
+        print(f"lens : {len(fRef)} , {len(tQ)}")
+        dat.tQ = Interp.interp1(fRef, tQ, fVec,pchip=True)
+        
+        
+        
+        # open file
+        with open('gfg.txt', 'w+') as f:
+            
+            # write elements of list
+            for items in dat.tQ:
+                f.write('%s\n' %items)
+            
+            print("File written successfully")
 
+
+        # close the file
+        f.close()
+        # dat.tQ = np.interp(fVec, fRef,tQ)
+        # dat.tQ[ : len(dat.tQ) - 1 ] = dat.tQ[ 1 : ] 
+        # dat.tQ[:10] *= 0
         dat.tQ500 = tQ[11]
         dat.g = dat.tQ500-dat.tQ    # low level gain in cochlea amplifier
         
@@ -78,7 +95,7 @@ class dataPreparator:
         
         a = np.array(data["a"])
         
-        dat.a =  - Interp.interp1(dat.g,  -g, -a, pchip=True )  #Again, none pchip  !! we use - g and- a because it is necessary to have an increasing array for the second argumetn
+        dat.a =  - Interp.interp1(-g, -a, dat.g, pchip=True )  #Again, none pchip  !! we use - g and- a because it is necessary to have an increasing array for the second argumetn
         
         #  compressive exponent alpha
         g = np.array(data["gCompression"])
@@ -86,7 +103,7 @@ class dataPreparator:
         alpha = np.array(data["alpha"])
 
 
-        dat.alpha =  Interp.interp1(dat.g,g,alpha, pchip= True)
+        dat.alpha =  Interp.interp1(g, alpha, dat.g, pchip= True)
 
         dat.c = data["c"]
 

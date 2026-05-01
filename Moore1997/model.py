@@ -56,7 +56,7 @@ class model:
         
         self.kv = kv
 
-        self.fVec = [kv["flow"] + i  + 1 for i in range(kv["fhigh"] - kv["flow"] )]
+        self.fVec = [kv["flow"] + i  for i in range(kv["fhigh"] - kv["flow"] )]
         
         self.data = jsonHandler.readJson('data/Glasberg2002.json')
         self.OuterMiddle = dataPreparator.OuterMiddle(self.data,self.fVec,"1997",free)
@@ -111,7 +111,7 @@ class model:
 
     def _specLoud(self):
         
-        dataSL = dataPreparator.SpecLoudness(self.data,self.erbFc)
+        dataSL = dataPreparator.SpecLoudness(self.data,self.fVec)
         class res :
             def __init__(self):
                         
@@ -214,9 +214,9 @@ class model:
         
         # c*(2*eL./(eL+tQ)).^1.5 .*((g.* eL + a).^alpha-a.^alpha)
         
-        specLoud1 = self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6? 
-        specLoud2 =  self.specLoudData.c * (  (self.specLoudData.g * eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
-        specLoud3 = self.specLoudData.c * ( eL/(1.04*(10**6)))**0.5 #% Eq. 9?
+        specLoud1 = 0*self.specLoudData.c *  ( (2*eL/( eL + self.specLoudData.tQ ))**1.5 ) *   ( (self.specLoudData.g* eL + self.specLoudData.a) ** self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha ) #% Eq. 6? 
+        specLoud2 =     self.specLoudData.c * (  (self.specLoudData.g * eL + self.specLoudData.a)**self.specLoudData.alpha - self.specLoudData.a**self.specLoudData.alpha); #% Eq. 8?
+        specLoud3 = 0*self.specLoudData.c * ( eL/(1.04*(10**6)))**0.5 #% Eq. 9?
         
         specLoud[ eL < self.specLoudData.tQ ] = specLoud1[eL < self.specLoudData.tQ]
         specLoud[ ( eL <= 10**10 ) & ( eL  > self.specLoudData.tQ )  ] = specLoud2[ (eL <= 10**10 ) & ( eL> self.specLoudData.tQ ) ]
@@ -237,6 +237,13 @@ class model:
     def getSpecLoudness(self, eL : np.array):
         return self.specLoudness(eL).specLoudness
 
+
+
+    class mooreReturned :
+        def __init__(self, loud, eL):
+            self.Loudness = loud
+            self.eL = eL
+            
     def moore1997(self, earSig : np.array,e0 = None, fs = 32000):
 
         if(fs != self.kv['fs']):
@@ -246,12 +253,8 @@ class model:
         
         res = self.specLoudness(eL)
         
-        class returned :
-            def __init__(self, loud, eL):
-                self.Loudness = loud
-                self.eL = eL
                 
-        return returned(res, eL)
+        return self.mooreReturned(res, eL)
         
 
 

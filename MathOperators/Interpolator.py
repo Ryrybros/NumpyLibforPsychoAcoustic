@@ -5,14 +5,14 @@ class Interpolator:
 
     #This class is just a wrapper for numpy and scipy interpolators
 
-    def interp1(x : np.array, xp : np.array , fp : np.array,pchip = False):
+    def interp1(x : np.array, y : np.array , ax : np.array,pchip = False):
         #Need to check if this is the right interpolation
         
-        assert(len(xp) == len(fp)  )
+        assert(len(x) == len(y)  )
 
         if(pchip):
-            pch = I.PchipInterpolator(xp,fp)
-            return pch(x)
+            pch = I.PchipInterpolator(x= x,y = y)
+            return pch(ax)
         
         return np.interp(x, xp, fp)
     
