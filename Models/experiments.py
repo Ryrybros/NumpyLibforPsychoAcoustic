@@ -115,8 +115,58 @@ def eLdBplot( ):
     plt.ylim(0,100)
     plt.show()
 
+
+
+
+
+
+
+def timeStepExp(tStepVals: list):
+    fs = 32000
+    
+    # Generate the signal once
+    y = sineMaker.makeSine(400, 0, 2, 100, fs)
+    y[int(len(y) / 2):] = sineMaker.makeSine(300, 0, 2, 80, fs)[:int(len(y) / 2)]
+    
+    # Total duration of the audio signal in seconds
+    total_duration = len(y) / fs 
+
+    print("Computing reference (timeStep = 0.001)...")
+    ref_step = 0.001
+    m_ref = model(free=True, timeStep=ref_step)
+    g_ref = m_ref.glasberg2002(y, fs)
+    
+    time_ref = np.linspace(0, total_duration, len(g_ref.LTL))
+    plt.plot(time_ref, g_ref.LTL, label=f"Reference (timeStep = {ref_step})", linestyle="--", color="black", alpha=0.7)
+    
+    for tStep in tStepVals:
+        m = model(free=True, timeStep=tStep)
+        
+        print(f"Timer started for timeStep = {tStep}")
+        t = time.time()
+        g = m.glasberg2002(y, fs)
+        print(f"Time for glasberg computation with timeStep = {tStep} : {time.time() - t:.4f}s")
+        
+        # Create a matching time vector for this specific step's output length
+        time_current = np.linspace(0, total_duration, len(g.LTL))
+        
+        plt.plot(time_current, g.LTL, label=f"timeStep = {tStep}")
+    
+    #Styles
+    plt.title("Glasberg 2002 LTL Comparison (Time-Aligned)")
+    plt.xlabel("Time (seconds)")  # Changed from samples to seconds
+    plt.ylabel("LTL")
+    plt.legend(loc="best")
+    plt.grid(True, linestyle=":", alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+    
+    
+    
 if __name__ == '__main__' :
-    eLdBplot()
-    fig8Plot(105)
-    fig12Plot(1000)
+    # eLdBplot()
+    # fig8Plot(105)
+    # fig12Plot(1000)
+    timeStepExp([0.0015, 0.0018,0.002,0.003, 0.005,0.01])
+
     
