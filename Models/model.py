@@ -383,12 +383,12 @@ class model:
 
 
         # STL and LTL:
-        aSTL = 0.045
-        rSTL = 0.02
+        aSTL = 0.045*self.kv["timeStep"]/1e-3
+        rSTL = 0.02*self.kv["timeStep"]/1e-3
         STL = [0.0] * len(binauralLoud)
 
-        aLTL = 0.01
-        rLTL = 0.0005
+        aLTL = 0.01*self.kv["timeStep"]/1e-3
+        rLTL = 0.0005*self.kv["timeStep"]/1e-3
         LTL = [0.0] * len(binauralLoud)
 
         for ii in range(1, len(binauralLoud)):
@@ -414,6 +414,9 @@ if __name__ == '__main__':
     fs = 32000
     y = sineMaker.makeSine(400,0,2,100,fs) #it is crucial that both signals matlab/python have the same parameters (time is important)
     y[int(len(y) / 2): ] =  sineMaker.makeSine(300,0,2,80,fs)[: int( len(y) / 2)]
+
+
+    
     print("Timer started")
     t = time.time()
     g = m.glasberg2002(y, fs)
