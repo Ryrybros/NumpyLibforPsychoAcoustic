@@ -1,8 +1,13 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from os.path import dirname, join as pjoin
+from scipy.io import wavfile
+import scipy.io
+
 from Models.model import model
 from MathOperators.Signals import sineMaker
 from MathOperators.ERBscale import ERB
+import Models.equalSones as eqSone
 import time
 
 
@@ -131,7 +136,8 @@ def fig12Plot(freq : float):
 
 def spectrogram(sig : np.array, fs = 32000):
     m = model(True)
-    spect = m.glasberg2002(sig,fs).specLoud
+    glasb = m.glasberg2002(sig,fs)
+    spect = glasb.specLoud
     print(spect.shape)
     print(len(spect[len(spect) - 1]))
     # --- 1. ROUTE YOUR ACTUAL DATA HERE ---
@@ -222,6 +228,21 @@ def spectrogram(sig : np.array, fs = 32000):
 
     plt.tight_layout()
     plt.show()
+    
+
+
+
+def spectrogramExperiment(file):
+    
+    samplerate, data = wavfile.read(file)
+
+    print(f"fs= {samplerate}")
+    length = data.shape[0] / samplerate
+    print(f"length = {length}s")
+
+    y = data
+
+    spectrogram(y)
 
 def eLdBplot( ):
     mod = model(True)
@@ -256,7 +277,7 @@ def timeStepExp(tStepVals: list):
     # Total duration of the audio signal in seconds
     total_duration = len(y) / fs 
 
-    print("Computing reference (timeStep = 0.001)...")
+    print("Computing reference ...")
     ref_step = 0.001
     m_ref = model(free=True, timeStep=ref_step)
     g_ref = m_ref.glasberg2002(y, fs)
@@ -279,7 +300,7 @@ def timeStepExp(tStepVals: list):
     
     #Styles
     plt.title("Glasberg 2002 LTL Comparison (Time-Aligned)")
-    plt.xlabel("Time (seconds)")  # Changed from samples to seconds
+    plt.xlabel("Time (seconds)")
     plt.ylabel("LTL")
     plt.legend(loc="best")
     plt.grid(True, linestyle=":", alpha=0.6)
@@ -314,19 +335,90 @@ def timeStepExp(tStepVals: list):
     
 
 
+def equalLoudnessGraph(dBSPL_ref, f_lim):
+    moore = model(True)
+    f = 1000
+    dB = 10
+    fs = 32000
+    y = sineMaker.makeSine(f, 0,0.5,dB,fs)
+
+    y = eqSone.setdBSPL(dBSPL_ref, y)
     
+    refSones = moore.moore1997(y,fs).Loudness.monauralLoudness
+    print("referecne Loudness : " ,refSones)
+    freqs = []
+    curve = []
+
     
+    test_axis= 2**(np.linspace(np.log2(10),np.log2(f_lim), 30))
+    count = 0
+    for i in test_axis:
+        
+        freqs.append(i)
+        l = sineMaker.makeSine( i , 0,0.5,dB,fs)
+        l = eqSone.setdBSPL(70 , l)
+        
+        l_adapt = eqSone.getEqualSones(y,l,10, 100,0,400)
+        curve.append(eqSone.getdBSPL(l_adapt))
+        print("\n")
+
+        print("dB is : ", curve[count])
+        print(f"IsoCurve step : {count} ")
+        count += 1
+
+    from scipy.interpolate import CubicSpline
+
+    axis = np.linspace(10,f_lim,200)
+    cs_curve = CubicSpline(test_axis, curve)
+    curve = cs_curve(axis)
+    
+    plt.plot(axis, curve, color='red', linewidth=2, label=f'Model Curve {dBSPL_ref}')
+    plt.text(len(axis)/2, curve[int(len(axis)/2)], f"{dBSPL_ref}", 
+         fontsize=15,  
+         color='black', 
+         va='center')
+    
+
+
+def allLoudnessGraph():
+    f_lim = 10000
+
+    plt.figure(figsize=(8, 6))
+
+    for i in range(30,90,10):   equalLoudnessGraph(i,f_lim)
+    fs = 32000
+
+     
+    plt.xscale('log')
+    
+    # 3. Explicitly set standard acoustic tick marks along the X-axis
+    x_ticks = [16, 31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+    x_labels = ['16', '31,5', '63', '125', '250', '500', '1K', '2K', '4K', '8K', '16K']
+    plt.xticks(x_ticks, x_labels)
+    plt.xlim(0, f_lim)
+    
+    plt.ylim(0, 130)
+    
+    plt.axvline(x=1000, color='gray', linestyle='--', alpha=0.7, linewidth=1.5)
+    
+    plt.title("Reproduction de la courbe d'iso-sonie", fontsize=12, fontweight='bold')
+    plt.xlabel("Fréquence Hz", fontsize=10)
+    plt.ylabel("Niveau de pression (dB SPL)", fontsize=10)
+    
+    # 7. Add a clear, fine grid background
+    plt.grid(True, which="both", linestyle="-", color='#d3d3d3', alpha=0.6)
+    
+    plt.tight_layout()
+    plt.show()
+    
+
 if __name__ == '__main__' :
     # eLdBplot()
     # # fig8Plot(105)
-    time = 0.5
-    fs = 32000
-    y = sineMaker.makeSine(100,0,time,50,fs)
-    x = np.linspace(0,1,int(fs*time))
-    for i in range(10):
-        y += np.exp(x*( 5 - i )) * sineMaker.makeSine(i*500,0,0.5,50,32000)
-    norm = np.sqrt(np.sum(y*y))
-    y /= norm
+    allLoudnessGraph()
     
-    spectrogram(y)
+
+    
+    
+    
         
