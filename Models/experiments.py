@@ -66,24 +66,27 @@ def fig8Plot(dBLevel : float):
 def fig12Plot(freq : float):
     mod = model(True)
 
-    nb_pnt = 60
+    nb_pnt = 30
     
     fig, ax3 = plt.subplots(figsize=(7, 6))
 
-    X = np.linspace(0, 120, nb_pnt)
+    X = np.linspace(5, 60, nb_pnt)
+    sound_pressure = (2e-5) * (10 ** (X/ 20))
 
     Y = []
     start_time = time.time()
     i = 0
     
-    for x in X:
-        y = sineMaker.makeSine(freq, 0, 2, x, mod.kv['fs'])
-        
+
+    for x in sound_pressure:
+        fs = 32000
+        t = np.linspace(0, 0.5, int(fs * 0.5), endpoint=False)
+        y = eqSone.setdBSPL( 10*np.log(x/2e-5), np.sin(2 * np.pi * freq * t))
         res = mod.moore1997(y)
         
         Y.append(2*res.Loudness.monauralLoudness )
         i += 1 
-        print(f"{i} / {len(X)} done")
+        print(f"{i} / {len(X)} done for dBSPL : {eqSone.getdBSPL(y)} added nan : {np.isnan(2*res.Loudness.monauralLoudness)} ")
 
         
             
@@ -91,39 +94,36 @@ def fig12Plot(freq : float):
     end_time = time.time()
     print("Time taken : ", end_time - start_time)
 
-    pl = Y
-    # 2. Generate the dB SPL X-axis and map it to Sound Pressure (Pa)
-    # Note: The standard reference pressure for 0 dB SPL is 2e-5 Pa, not 1e-5.
-    x_db = np.linspace(0, 120, len(pl))
-    sound_pressure = (2e-5) * (10 ** (x_db / 20))
+    pl = []
+    x = []
 
-    # 3. Define your slicing indices for the fit
-    # Ensure these indices align roughly with the 40 to 90 dB SPL region
-    start = 25
-    end = 50
+    start = int(0)
+    end = int(nb_pnt)
 
-    # 4. Transform BOTH variables to natural logs for the power-law fit
-    log_x = np.log(sound_pressure)
+    for i in range(nb_pnt):
+        if not np.isnan(Y[i]) :
+            pl.append(Y[i])
+            x.append(sound_pressure[i])
+
+    print(f"len Y {len(Y)}, len(pl) {len(pl)}")
+    log_x = x
     log_y = np.log(pl)
 
-    # 5. Perform the linear fit on the log-log data
-    # The slope 'z[0]' is directly equal to your Alpha exponent
     z = np.polyfit(log_x[start:end], log_y[start:end], 1)
     alpha = z[0]
 
     print(f"Polynomial fit (slope, intercept): {z}")
     print(f"Calculated Stevens Exponent (Alpha): {alpha:.4f}")
 
-    # 6. Plot the log-log relationship to verify linearity
     plt.figure(figsize=(8, 5))
-    plt.plot(log_x, log_y, 'b-', label='Moore Model Data')
+    plt.plot(log_x[start:end], log_y[start:end], 'b-', label='Moore Model Data')
     plt.plot(log_x[start:end], log_y[start:end], 'ro', label='Fitted Region')
 
     # Calculate and plot the fit line
-    fit_line = z[0] * log_x[start:end] + z[1]
+    fit_line = np.float64(z[0]) * np.float64(log_x[start:end]) + np.float64(z[1])
     plt.plot(log_x[start:end], fit_line, 'k--', label=f'Fit (Alpha = {alpha:.2f})')
 
-    plt.xlabel('ln(Sound Pressure in Pa)')
+    plt.xlabel('Intensity')
     plt.ylabel('ln(Monaural Loudness)')
     plt.title("Stevens' Power Law Exponent Estimation")
     plt.legend()
@@ -140,21 +140,15 @@ def spectrogram(sig : np.array, fs = 32000):
     spect = glasb.specLoud
     print(spect.shape)
     print(len(spect[len(spect) - 1]))
-    # --- 1. ROUTE YOUR ACTUAL DATA HERE ---
-    # Replace 'your_matrix_variable' with the name of your real matrix
+    
     my_data = spect 
 
-    # Grab the actual number of time steps from your matrix shape
     num_time_steps = my_data.shape[0]  # This will read your 500ms dimension
 
-    # --- 2. TRANSPOSE FOR SPECTROGRAM ALIGNMENT ---
-    # Flips it from (time, bands) to (bands, time) so bands stack vertically
     plot_data = my_data.T
 
-    # --- 3. CREATE THE GRAPH ---
     plt.figure(figsize=(10, 5))
 
-    # origin="lower" puts low frequency bands at the bottom
     img = plt.imshow(plot_data, origin="lower", aspect="auto", cmap="viridis")
 
     plt.title("ERB-Band Spectrogram")
@@ -338,9 +332,9 @@ def timeStepExp(tStepVals: list):
 def equalLoudnessGraph(dBSPL_ref, f_lim):
     moore = model(True)
     f = 1000
-    dB = 10
+    
     fs = 32000
-    y = sineMaker.makeSine(f, 0,0.5,dB,fs)
+    y = sineMaker.makeSine(f, 0,0.5,10,fs)
 
     y = eqSone.setdBSPL(dBSPL_ref, y)
     
@@ -350,12 +344,12 @@ def equalLoudnessGraph(dBSPL_ref, f_lim):
     curve = []
 
     
-    test_axis= 2**(np.linspace(np.log2(10),np.log2(f_lim), 30))
+    test_axis= 2**(np.linspace(np.log2(10),np.log2(f_lim), 5))
     count = 0
     for i in test_axis:
         
         freqs.append(i)
-        l = sineMaker.makeSine( i , 0,0.5,dB,fs)
+        l = sineMaker.makeSine( i , 0,0.5,0,fs)
         l = eqSone.setdBSPL(70 , l)
         
         l_adapt = eqSone.getEqualSones(y,l,10, 100,0,400)
@@ -391,7 +385,6 @@ def allLoudnessGraph():
      
     plt.xscale('log')
     
-    # 3. Explicitly set standard acoustic tick marks along the X-axis
     x_ticks = [16, 31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
     x_labels = ['16', '31,5', '63', '125', '250', '500', '1K', '2K', '4K', '8K', '16K']
     plt.xticks(x_ticks, x_labels)
@@ -414,8 +407,11 @@ def allLoudnessGraph():
 
 if __name__ == '__main__' :
     # eLdBplot()
-    # # fig8Plot(105)
-    allLoudnessGraph()
+    # fig8Plot(105)
+    # fig12Plot(3000)
+    equalLoudnessGraph(70,10000)
+    plt.show()
+    # allLoudnessGraph()
     
 
     

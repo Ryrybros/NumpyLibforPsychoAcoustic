@@ -35,23 +35,16 @@ def save_as_wav(sig: np.array, destination: str):
 
 
 def getdBSPL(sig: np.array):
-    """
-    Calculates the global dB SPL level of an input digital signal.
-    Assumes standard calibration where a digital full-scale peak amplitude 
-    of 1.0 (RMS = 1/sqrt(2)) maps to 94 dB SPL (1 Pascal RMS).
-    """
+    
     # Calculate Root-Mean-Square (RMS) of the signal
     rms = np.sqrt(np.mean(sig**2))
     
     if rms == 0:
         return -np.inf
         
-    # Reference digital RMS corresponding to 1 Pa (94 dB SPL)
-    # A full-scale sine wave with peak=1.0 has an RMS of 1/sqrt(2)
-    p_ref_digital = 1.0 / np.sqrt(2.0)
+    p_ref = 20e-6
     
-    # Calculate dB SPL relative to the calibration point
-    db_spl = 94.0 + 20.0 * np.log10(rms / p_ref_digital)
+    db_spl =  20.0 * np.log10(rms / p_ref)
     return db_spl
 
 
@@ -110,7 +103,6 @@ def getEqualSones(ref_sig: np.array, sig: np.array, limit=20, accuracy = 1000 ,l
         else:
             high_dB = mid_dB
 
-    print()
     
     if not success:
         print(f"!!! Could not fully converge within {limit} steps. Best estimation returned.")
@@ -121,12 +113,22 @@ def getEqualSones(ref_sig: np.array, sig: np.array, limit=20, accuracy = 1000 ,l
 
 
 if __name__ == '__main__':
-    y = getSig("Models/sounds/import_Prog/Dep_Am.wav")
-    # print(getdBSPL(y))
-    y2 = getSig("Models/sounds/import_Prog/ODep_Am.wav")
-    # print("Now : ", getdBSPL(y))
-    # save_as_wav(y2, "Models/sounds/exp/test_0.wav")
-    moore = model(True)
-    eqSone = getEqualSones(y, y2, 100)
-    print(getSones(moore, eqSone))
-    save_as_wav(eqSone, "Models/sounds/exp/testres_Prog.wav")
+
+    y_ref = np.sin(2*np.pi*1000*np.linspace(0,1,32000))
+    y_2   = np.sin(2*np.pi*100*np.linspace(0,1,32000))
+
+    y_ref = setdBSPL(60, y_ref);
+    y_2   = setdBSPL(60, y_2);
+
+    y_2_equal_loudness = getEqualSones(y_ref, y_2, 10, 100, 0, 120);
+
+
+    # y = getSig("Models/sounds/import_Prog/Dep_Am.wav")
+    # # print(getdBSPL(y))
+    # y2 = getSig("Models/sounds/import_Prog/ODep_Am.wav")
+    # # print("Now : ", getdBSPL(y))
+    # # save_as_wav(y2, "Models/sounds/exp/test_0.wav")
+    # moore = model(True)
+    # eqSone = getEqualSones(y, y2, 100)
+    # print(getSones(moore, eqSone))
+    # save_as_wav(eqSone, "Models/sounds/exp/testres_Prog.wav")
